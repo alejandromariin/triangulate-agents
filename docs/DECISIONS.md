@@ -3,9 +3,13 @@
 Design decisions and course corrections, newest first.
 Format: what was decided, what was considered instead, and why.
 
+Recorded here only when a decision constrains how the data is handled or how the
+reported numbers must be read. Tooling preferences and layout conventions are
+left to the code.
+
 ---
 
-### D-010 · Splits are stratified by whether the statement names the gold file
+### D-007 · Splits are stratified by whether the statement names the gold file
 **2026-08-03**
 
 42% of the selected instances have the gold file's path written somewhere in the
@@ -40,7 +44,7 @@ are now stratified on this property as well, bringing them to 42% each.
   topologies converge when the answer is given and diverge when it is not is a
   sharper question than any aggregate, and an aggregate would hide it.
 
-### D-009 · Per-repository quotas instead of a cap; split is 26 dev / 12 held-out
+### D-006 · Per-repository quotas instead of a cap; split is 26 dev / 12 held-out
 **2026-08-03**
 
 Each of the 12 repositories contributes a fixed quota of instances — 3, plus one
@@ -57,7 +61,7 @@ drawn with the seed. Exactly one instance per repository goes to `heldout`.
   many* per repository.
 - **Arithmetic:** 12 repositories × 3 = 36, plus one extra to each of the two
   largest = 38. One instance per repository is held out ⇒ **26 dev / 12
-  held-out**, superseding the 25/13 of D-005 and D-006, which were chosen before
+  held-out**, superseding the 25/13 of D-003 and D-004, which were chosen before
   the repository distribution was measured. 26/12 falls out of the structure
   instead of being rounded to a target; the effect on the margin of error is
   ±27 → ±28 points, i.e. cosmetic, while the regularity is not.
@@ -75,7 +79,7 @@ drawn with the seed. Exactly one instance per repository goes to `heldout`.
   per-repository error analysis is possible at all. Under a random draw,
   repositories with zero or one instance would make that question unanswerable.
 
-### D-008 · Every SWE-bench Lite instance touches exactly one file
+### D-005 · Every SWE-bench Lite instance touches exactly one file
 **2026-08-03**
 
 Measured before writing the build script: all 300 instances of the `test` split
@@ -101,23 +105,10 @@ curated down to single-file, product-code fixes.
   Written blind, the script would have carried three filters that never fire and
   a metric that cannot express the result.
 
-### D-007 · OpenAI models rather than Anthropic
+### D-004 · Golden set fixed at 38 instances
 **2026-08-03**
 
-- **Considered:** the Anthropic API.
-- **Why:** existing API access and familiarity, which removes friction from the
-  fastest-moving part of the project.
-- **Scope:** the choice of provider is orthogonal to the research question. The
-  comparison is between *topologies* under a fixed model, not between models. A
-  cross-model replication is planned precisely to test whether the topology
-  conclusions hold independently of the model.
-- **Open:** the specific cheap/expensive model pair is deferred until the first
-  agent runs and the real cost per instance can be measured.
-
-### D-006 · Golden set fixed at 38 instances
-**2026-08-03**
-
-38 instances (26 dev / 12 held-out, see D-009), with the cost question
+38 instances (26 dev / 12 held-out, see D-006), with the cost question
 deliberately answered somewhere other than the size of the dataset.
 
 - **Considered:** 15-24 instances to reduce API spend.
@@ -134,10 +125,10 @@ deliberately answered somewhere other than the size of the dataset.
 - **Revisit:** after measuring real token cost on a single instance.
   Regenerating a smaller set is one command.
 
-### D-005 · Dev / held-out split from day one
+### D-003 · Dev / held-out split from day one
 **2026-08-03**
 
-26 instances for iteration, 12 reserved (see D-009 for how those figures arise).
+26 instances for iteration, 12 reserved (see D-006 for how those figures arise).
 Prompts, parameters and architecture are tuned looking only at `dev`. The
 held-out split is run rarely and produces the reported numbers.
 
@@ -148,7 +139,7 @@ held-out split is run rarely and produces the reported numbers.
 - **If contaminated:** resample a fresh held-out set from the remaining SWE-bench
   Lite pool and record it here.
 
-### D-004 · `gold_functions` derived heuristically, and marked as such
+### D-002 · `gold_functions` derived heuristically, and marked as such
 **2026-08-03**
 
 Function-level ground truth is extracted from the section heading git writes into
@@ -164,7 +155,7 @@ each diff hunk header, not from parsing the source.
   states explicitly that the field is not reportable ground truth; scoring uses
   `gold_files` only.
 
-### D-003 · The gold patch is never stored in the golden set
+### D-001 · The gold patch is never stored in the golden set
 **2026-08-03**
 
 `gold_files` is derived from SWE-bench's `patch` field at build time, and the
@@ -177,26 +168,3 @@ patch itself is discarded. `hints_text` is stored but never reaches the agent.
   structurally impossible rather than merely unlikely — a stronger guarantee for
   a one-line cost. Same reasoning for `hints_text`, which frequently names the
   faulty file outright.
-
-### D-002 · Dependencies added incrementally, pinned exactly
-**2026-08-03**
-
-`pyproject.toml` declares only what is actually used, at exact versions.
-
-- **Considered:** declaring the full intended stack up front.
-- **Why:** exact pins keep reported numbers reproducible. Adding dependencies
-  only when something needs them keeps install times short and makes the git
-  history show what each one was added for.
-
-### D-001 · The repository is not an installable package
-**2026-08-03**
-
-Top-level directories with `package = false`; entry points run as
-`uv run python -m scripts.build_golden_set` from the root.
-
-- **Considered:** a conventional `src/triangulate/` layout.
-- **Why:** the flat layout keeps the directory names identical to the
-  architecture they represent, with no packaging indirection to explain. Nothing
-  here is consumed as a library.
-- **Revisit:** if the eval harness is ever extracted for reuse elsewhere, real
-  packaging becomes necessary.

@@ -31,7 +31,7 @@ was evaluated in every run.
 | `n_heldout` | `int` | Number of instances in the `heldout` split. |
 | `n_repos` | `int` | Number of distinct repositories represented. Every one of them appears in both splits. |
 | `max_files` | `int` | Safeguard: maximum number of files touched by the gold patch. Never fires on SWE-bench Lite (see below). |
-| `per_repo_quota` | `object` | Instances drawn from each repository, keyed by repo. Quotas rather than a cap: a cap sets a ceiling but no floor, so a random draw could omit a small repository entirely. See `docs/DECISIONS.md` (D-009). |
+| `per_repo_quota` | `object` | Instances drawn from each repository, keyed by repo. Quotas rather than a cap: a cap sets a ceiling but no floor, so a random draw could omit a small repository entirely. See `docs/DECISIONS.md` (D-006). |
 | `filters` | `object` | Count of instances rejected by each criterion. Makes the selection bias auditable. Expected to be all zeros on SWE-bench Lite. |
 
 ### `instances[]`
@@ -48,8 +48,8 @@ was evaluated in every run.
 | `gold_files` | `list[str]` | derived | Repo-relative paths touched by the gold patch. **Ground truth of the primary metric.** Sorted alphabetically. |
 | `gold_functions` | `list[str]` | derived | `"path.py::name"` of the enclosing functions/classes, best-effort (see below). |
 | `n_gold_files` | `int` | derived | `len(gold_files)`. Always `1` on SWE-bench Lite; kept because it is not constant on other datasets. |
-| `statement_names_gold_file` | `bool` | derived | Whether the statement already names the gold file, usually via a pasted stack trace. Such instances are much easier, so both splits are stratified on it. Also report results split by this field. See `docs/DECISIONS.md` (D-010). |
-| `split` | `"dev" \| "heldout"` | derived | `dev` is the only split used while iterating on prompts and parameters; `heldout` is reserved and produces the reported numbers. Stratified by repository *and* by `statement_names_gold_file`. See `docs/DECISIONS.md` (D-005, D-010). |
+| `statement_names_gold_file` | `bool` | derived | Whether the statement already names the gold file, usually via a pasted stack trace. Such instances are much easier, so both splits are stratified on it. Also report results split by this field. See `docs/DECISIONS.md` (D-007). |
+| `split` | `"dev" \| "heldout"` | derived | `dev` is the only split used while iterating on prompts and parameters; `heldout` is reserved and produces the reported numbers. Stratified by repository *and* by `statement_names_gold_file`. See `docs/DECISIONS.md` (D-003, D-007). |
 
 SWE-bench fields deliberately **not** copied: `patch`, `test_patch`,
 `FAIL_TO_PASS`, `PASS_TO_PASS`, `version`. The gold `patch` literally contains
@@ -88,7 +88,7 @@ golden set were inspected by hand and none was a false positive.
 ## Measured properties of the source dataset
 
 Counted over the full `test` split before implementing the build script
-(see `docs/DECISIONS.md`, D-008):
+(see `docs/DECISIONS.md`, D-005):
 
 | Property | Value |
 |---|---|
@@ -106,7 +106,7 @@ Three consequences follow, and all are load-bearing:
 1. **Repository balance is the only selection rule that does anything.** It is
    what stops the golden set from being a Django benchmark. Since the smallest
    repository has exactly 3 instances, a quota of 3 per repository is feasible
-   for all 12 (D-009).
+   for all 12 (D-006).
 2. **Every instance has a single target.** Precision@k is degenerate under a
    single gold file — a correct answer inside a 5-candidate list scores 0.2 — so
    the primary metrics are Accuracy@k and MRR. Equally, the benchmark covers
@@ -142,7 +142,7 @@ absent heading and one naming the preceding class rather than the modified one.
 `gold_functions` is therefore **not reportable ground truth**, and scoring uses
 `gold_files` only. An accurate derivation requires resolving hunk line numbers to
 enclosing definitions with `ast` against a checkout at `base_commit`. See
-`docs/DECISIONS.md` (D-004).
+`docs/DECISIONS.md` (D-002).
 
 ## Example
 
