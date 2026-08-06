@@ -1,0 +1,23 @@
+[project]
+name = "triangulate"
+version = "0.0.0"
+description = "Multi-agent bug localization: four CrewAI topologies compared with an eval harness on SWE-bench Lite"
+readme = "README.md"
+requires-python = "==3.12.*"
+license = { text = "MIT" }
+
+dependencies = [
+    "datasets==5.0.1",
+    "unidiff==1.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
