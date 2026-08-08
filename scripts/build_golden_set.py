@@ -24,6 +24,7 @@ from datasets import load_dataset
 from huggingface_hub import dataset_info
 from unidiff import PatchedFile, PatchSet
 
+# Matches the definition name in a hunk's section header: "def foo(", "class Bar(".
 DEFINITION_RE = re.compile(r"\b(?:async\s+def|def|class)\s+(\w+)")
 
 SCHEMA_VERSION = "1"
@@ -37,6 +38,7 @@ TARGET_SIZE = 38
 DEFAULT_SEED = 20260803
 
 
+# True if the path looks like test code rather than product code.
 def is_test_path(path: str) -> bool:
     name = path.rsplit("/", 1)[-1]
     return (
@@ -47,27 +49,32 @@ def is_test_path(path: str) -> bool:
     )
 
 
+# The files of a patch that count as a localization target.
 def product_code_files(patch_text: str) -> list[PatchedFile]:
     return [
         pfile
         for pfile in PatchSet(patch_text)
+        # A deleted file has nothing left to locate.
         if pfile.target_file != "/dev/null"
         and pfile.path.endswith(".py")
         and not is_test_path(pfile.path)
     ]
 
 
+# Ground truth: the paths the real fix touched. Sorted so the output is stable.
 def parse_gold_files(patch_text: str) -> list[str]:
     return sorted(pfile.path for pfile in product_code_files(patch_text))
 
 
+# Pulls "get_prep_value" out of "def get_prep_value(self, value):".
 def definition_name(section_header: str) -> str | None:
     match = DEFINITION_RE.search(section_header)
     return match.group(1) if match else None
 
 
+# Approximate function-level targets, read from what git writes in hunk headers.
 def parse_gold_functions(patch_text: str) -> list[str]:
-    names = set()
+    names = set()  # a set, so two hunks in the same function collapse into one
     for pfile in product_code_files(patch_text):
         for hunk in pfile:
             name = definition_name(hunk.section_header)
@@ -76,10 +83,12 @@ def parse_gold_functions(patch_text: str) -> list[str]:
     return sorted(names)
 
 
+# Whether the report already gives the answer away, usually via a stack trace.
 def statement_names_gold_file(statement: str, gold_files: list[str]) -> bool:
     text = statement.lower()
     for gold in gold_files:
         path = gold.lower()
+        # Same file written as an import path: src/flask/cli.py -> src.flask.cli -> flask.cli
         dotted = path.removesuffix(".py").replace("/", ".")
         unrooted = dotted.split(".", 1)[-1]
         if any(form in text for form in (path, path.rsplit("/", 1)[-1], dotted, unrooted)):
@@ -87,6 +96,7 @@ def statement_names_gold_file(statement: str, gold_files: list[str]) -> bool:
     return False
 
 
+# Instances keyed by repository, each list sorted so the draw is reproducible.
 def group_by_repo(instances: list[dict]) -> dict[str, list[dict]]:
     grouped = defaultdict(list)
     for instance in instances:
@@ -96,10 +106,13 @@ def group_by_repo(instances: list[dict]) -> dict[str, list[dict]]:
     return dict(grouped)
 
 
+# How many instances to draw from each repository to reach TARGET_SIZE.
 def assign_quotas(pool: dict[str, list[dict]]) -> dict[str, int]:
+    # A base quota each, capped by what the repository actually has.
     quotas = {repo: min(QUOTA_PER_REPO, len(items)) for repo, items in pool.items()}
     largest_first = sorted(pool, key=lambda r: (-len(pool[r]), r))
 
+    # Hand out the leftover slots, biggest repositories first.
     remaining = TARGET_SIZE - sum(quotas.values())
     while remaining > 0:
         assigned = 0
@@ -110,6 +123,7 @@ def assign_quotas(pool: dict[str, list[dict]]) -> dict[str, int]:
                 quotas[repo] += 1
                 remaining -= 1
                 assigned += 1
+        # Every repository is exhausted: TARGET_SIZE is unreachable.
         if assigned == 0:
             break
     return quotas
@@ -123,6 +137,7 @@ def pick_heldout(drawn: dict[str, list[dict]], rng: random.Random) -> list[dict]
     very different difficulties, which would make a drop from dev to heldout
     unreadable: overfitting and a harder sample look identical.
     """
+    # How many of the held-out instances should carry a hint to match the whole set.
     everything = [i for items in drawn.values() for i in items]
     hinted_share = sum(i["statement_names_gold_file"] for i in everything) / len(everything)
     target = round(len(drawn) * hinted_share)
@@ -135,13 +150,16 @@ def pick_heldout(drawn: dict[str, list[dict]], rng: random.Random) -> list[dict]
 
     heldout = []
     for repo in repos:
+        # Ask for whichever kind is still short, and settle for what the repo has.
         want_hinted = sum(i["statement_names_gold_file"] for i in heldout) < target
         options = [i for i in drawn[repo] if i["statement_names_gold_file"] == want_hinted]
         heldout.append(rng.choice(options or drawn[repo]))
     return heldout
 
 
+# The 38 instances, drawn per repository and tagged dev / heldout.
 def select_golden_set(instances: list[dict], seed: int) -> list[dict]:
+    # Seeded, so the same input always yields the same golden set.
     rng = random.Random(seed)
     pool = group_by_repo(instances)
     quotas = assign_quotas(pool)
@@ -156,6 +174,8 @@ def select_golden_set(instances: list[dict], seed: int) -> list[dict]:
     return sorted(selected, key=lambda i: i["instance_id"])
 
 
+# One SWE-bench row reduced to the fields the benchmark needs. The gold patch is
+# read here and deliberately not carried over: it is the answer.
 def build_instance(row: dict, gold_files: list[str]) -> dict:
     return {
         "instance_id": row["instance_id"],
@@ -174,6 +194,7 @@ def build_instance(row: dict, gold_files: list[str]) -> dict:
     }
 
 
+# Every eligible instance, plus a tally of why the rest were rejected.
 def collect_instances(rows) -> tuple[list[dict], Counter]:
     filters = Counter()
     instances = []
@@ -190,6 +211,7 @@ def collect_instances(rows) -> tuple[list[dict], Counter]:
     return instances, filters
 
 
+# Provenance block: everything needed to rebuild this exact file later.
 def build_meta(selected: list[dict], seed: int, filters: Counter) -> dict:
     splits = Counter(instance["split"] for instance in selected)
     per_repo = Counter(instance["repo"] for instance in selected)
@@ -221,6 +243,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
+    # Cached after the first run, so this only hits the network once.
     rows = load_dataset(SOURCE_DATASET, split=SOURCE_SPLIT)
     instances, filters = collect_instances(rows)
     selected = select_golden_set(instances, args.seed)
@@ -233,6 +256,7 @@ def main() -> None:
     if any(filters.values()):
         print(f"dropped: {dict(filters)}")
 
+    # Everything above is already done; only the write is skipped.
     if args.dry_run:
         print("dry run, nothing written")
         return
