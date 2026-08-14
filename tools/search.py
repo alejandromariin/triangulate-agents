@@ -36,6 +36,10 @@ def ripgrep_search(
         cwd=root,
         capture_output=True,
         text=True,
+        # Without these, Windows decodes ripgrep's output as cp1252 and any
+        # non-ASCII match kills the reader thread.
+        encoding="utf-8",
+        errors="replace",
         timeout=TIMEOUT_SECONDS,
     )
 

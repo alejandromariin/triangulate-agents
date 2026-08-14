@@ -36,7 +36,9 @@ def read_file(root: Path, path: str, start: int = 1, limit: int = MAX_LINES) -> 
     if not target.is_file():
         return f"no such file: {path}"
 
-    lines = target.read_text(encoding="utf-8").splitlines()
+    # Some files in these repositories are deliberately mis-encoded; a decoding
+    # error must not take down a whole run.
+    lines = target.read_text(encoding="utf-8", errors="replace").splitlines()
     chunk = lines[start - 1 : start - 1 + limit]
     numbered = "\n".join(f"{start + offset:>6}  {line}" for offset, line in enumerate(chunk))
 
