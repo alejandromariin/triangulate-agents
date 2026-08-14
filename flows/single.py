@@ -29,9 +29,21 @@ class LocalizationResult:
     usage: dict = field(default_factory=dict)
 
 
+# Scoring compares paths verbatim, so the format it demands is stated in the
+# prompt. Anything a metric penalises has to be asked for explicitly, or the
+# measurement drifts into "did the agent guess the expected format".
+PATH_FORMAT = (
+    "Every path must be complete and relative to the repository root, exactly as "
+    "the tools print it: 'django/forms/formsets.py'. Not 'formsets.py', not "
+    "'forms/formsets.py', not './django/forms/formsets.py', not an absolute path."
+)
+
+
 # The moulded answer, so scoring never has to parse prose.
 class Localization(BaseModel):
-    files: list[str] = Field(description="Repository-relative paths, most suspicious first")
+    files: list[str] = Field(
+        description=f"Repository-relative paths, most suspicious first. {PATH_FORMAT}"
+    )
     reasoning: str = Field(description="Why these files, in a few sentences")
 
 
@@ -67,8 +79,8 @@ def build_task(agent: Agent, instance: dict) -> Task:
             f"--- bug report ---\n{instance['problem_statement']}"
         ),
         expected_output=(
-            f"At most {MAX_CANDIDATES} repository-relative paths, most suspicious first, "
-            "each one seen in the repository during the investigation."
+            f"At most {MAX_CANDIDATES} paths, most suspicious first, each one seen in the "
+            f"repository during the investigation. {PATH_FORMAT}"
         ),
         agent=agent,
         output_pydantic=Localization,
