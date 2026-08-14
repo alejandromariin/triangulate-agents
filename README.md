@@ -14,6 +14,34 @@ change, scored against the files the real fix actually touched.
 Nothing from the analyzed repositories is ever executed. They are cloned, checked
 out at the relevant commit, and read.
 
+## What is measured
+
+**These are not SWE-bench numbers.** SWE-bench reports `% resolved`: a system
+generates a patch, the patch is applied, and the repository's own tests decide
+whether the bug is fixed. This project stops one step earlier — at localization,
+which file must change — so its numbers are not comparable to any SWE-bench
+leaderboard, and a higher figure here does not mean a better SWE-bench system.
+
+The metrics are therefore defined here rather than inherited:
+
+| | |
+|---|---|
+| Accuracy@1 / @3 / @5 | is the gold file among the first k candidates? |
+| MRR | how highly was it ranked? `1/rank`, averaged over instances |
+| tokens, cost, wall-clock | what the answer cost to produce |
+| tool calls, repeated calls | how the topology spent its budget |
+
+Precision, recall and F1 are not reported: every instance in SWE-bench Lite has
+exactly one gold file, which makes precision degenerate — a correct answer inside
+a five-candidate list would score 0.2.
+
+Accuracy is always read next to cost, and always broken down by whether the
+report already named the gold file (`statement_names_gold_file`) — the two
+populations are of very different difficulty, and an aggregate hides it.
+
+The comparison is between topologies, all of them evaluated on the same instances
+under the same budget, with the same model.
+
 ## Requirements
 
 | | Why |
