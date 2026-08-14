@@ -54,7 +54,11 @@ def score(result, gold_files: list[str]) -> dict:
     scored = {f"hit@{k}": int(rank is not None and rank <= k) for k in K_VALUES}
     scored["rr"] = 1 / rank if rank else 0.0
     scored["rank"] = rank
-    scored["n_candidates"] = len(candidates(result.files))
+    proposed = candidates(result.files)
+    scored["n_candidates"] = len(proposed)
+    # A candidate with no directory in it cannot be a repository path. Counting
+    # these separates a topology that reasons badly from one that answers badly.
+    scored["bare_names"] = sum(1 for path in proposed if "/" not in path)
     scored["seconds"] = result.seconds
     scored["prompt_tokens"] = result.usage.get("prompt_tokens", 0)
     scored["completion_tokens"] = result.usage.get("completion_tokens", 0)
@@ -69,6 +73,7 @@ def aggregate(scored: list[dict]) -> dict:
     row = {f"accuracy@{k}": mean(s[f"hit@{k}"] for s in scored) for k in K_VALUES}
     row["mrr"] = mean(s["rr"] for s in scored)
     row["n"] = len(scored)
+    row["bare_names"] = sum(s["bare_names"] for s in scored)
     row["seconds"] = mean(s["seconds"] for s in scored)
     row["prompt_tokens"] = mean(s["prompt_tokens"] for s in scored)
     row["completion_tokens"] = mean(s["completion_tokens"] for s in scored)

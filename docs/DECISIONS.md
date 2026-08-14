@@ -9,6 +9,32 @@ left to the code.
 
 ---
 
+### D-009 · A hit requires the full repository-relative path
+**2026-08-06**
+
+Scoring compares paths verbatim after normalising separators, a leading `./` or
+`/`, and surrounding whitespace. Case is not normalised, and partial paths do not
+count: `formsets.py` and `forms/formsets.py` are misses even when the gold file
+is `django/forms/formsets.py`.
+
+- **Considered:** accepting any suffix of the gold path, or the bare file name.
+- **Why not:** naming a file is not locating it. Django contains many `utils.py`,
+  `base.py` and `models.py`; a topology that emitted bare file names without ever
+  finding where they live would score almost as well as one that investigated,
+  and the benchmark would stop measuring what it claims to measure.
+- **Why case is left alone:** on a case-sensitive filesystem `Utils.py` and
+  `utils.py` are different files, so folding case would accept an answer that
+  does not exist in the repository.
+- **Paired with the prompt:** the required format is stated explicitly in the
+  task, with examples of what is rejected, and the wording is identical across
+  topologies. A metric may only penalise what the prompt asked for — otherwise
+  the experiment partly measures whether a model guessed the expected format,
+  which is not the subject of the comparison.
+- **How to read the numbers:** a malformed answer counts as a miss, exactly like
+  a wrong one. Runs therefore also record how many answers contained no
+  well-formed path at all, so a topology failing on format rather than on
+  reasoning is visible instead of silently penalised.
+
 ### D-008 · Every topology answers with at most five files and a bounded budget
 **2026-08-06**
 
