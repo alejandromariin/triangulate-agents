@@ -23,6 +23,7 @@ out at the relevant commit, and read.
 | git | the repositories are cloned and checked out through it |
 | [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`) | backs the lexical search tool |
 | ~2 GB of disk | the twelve cloned repositories |
+| an OpenAI API key | only to run the agents; building the dataset needs none |
 
 Installing ripgrep:
 
@@ -49,11 +50,31 @@ uv run python -m scripts.setup_repos                  # -> data/repos/, ~2 GB
 Both scripts are idempotent: rerunning them re-derives the same golden set and
 skips repositories that are already cloned.
 
+To run the agents, copy `.env.example` to `.env` and fill in the key:
+
+```
+OPENAI_API_KEY=sk-...
+```
+
+```python
+from dotenv import load_dotenv; load_dotenv()
+
+from flows import single
+from tools.workspace import load_instances
+
+result = single.run(load_instances()["django__django-15902"])
+print(result.files, result.usage)
+```
+
+Every topology exposes the same `run(instance) -> LocalizationResult`: a ranked
+list of files plus the reasoning, elapsed time and token usage.
+
 ## Layout
 
 ```
 scripts/   golden set construction and repository setup
-tools/     read-only access to a checkout: workspace, files, search
+tools/     read-only access to a checkout: workspace, files, search, crew adapters
+flows/     one module per topology, all exposing run(instance)
 data/      golden_set_v1.json (committed) and repos/ (regenerable, ignored)
 docs/      decision log
 ```

@@ -9,6 +9,27 @@ left to the code.
 
 ---
 
+### D-008 · Every topology answers with at most five files and a bounded budget
+**2026-08-06**
+
+Each topology returns a ranked list capped at 5 candidates, and each agent is
+capped at 15 tool-using iterations.
+
+- **Why the cap on candidates:** with a single gold file per instance, an
+  unbounded list would let a topology hedge — naming twenty files guarantees a
+  hit and makes Accuracy@k meaningless. Five is enough for MRR to discriminate
+  between ranks while keeping the answer a commitment rather than a sweep.
+- **Why the cap on iterations:** it bounds the cost of a single instance, and it
+  bounds it *equally* for every topology. Without it, the topologies would differ
+  in how long they are allowed to run, and any difference in accuracy could be
+  bought with tokens rather than with structure.
+- **How to read the numbers:** both caps are part of the measurement. A reported
+  Accuracy@5 is "accuracy under a 5-candidate, 15-iteration budget", and a
+  topology that would do better with more room is recorded as doing worse here.
+  Raising either cap invalidates comparison with earlier runs.
+- **Reported alongside results:** elapsed time and token usage per instance, so
+  the accuracy of a topology is never read without its cost.
+
 ### D-007 · Splits are stratified by whether the statement names the gold file
 **2026-08-03**
 
