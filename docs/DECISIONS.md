@@ -9,6 +9,29 @@ left to the code.
 
 ---
 
+### D-010 · The repository is exposed at `base_commit`, and nothing after it
+**2026-08-06**
+
+Clones contain the full history, including the commit that fixes the bug. Before
+each instance the checkout is parked on `base_commit`, and every history tool is
+anchored at `HEAD`, which git only walks backwards from. Options that traverse
+other branches (`--all`, explicit revisions) are never passed.
+
+- **What would happen otherwise:** `git_log` would list the fixing commit, whose
+  message and touched paths are the answer. Accuracy would go *up*, which makes
+  this the most dangerous kind of failure — it looks like success.
+- **Verified, not assumed:** on `django__django-15902` the clone holds 3,935
+  commits after `base_commit`; none of them appears in the tool's output. The
+  same property is what `scripts/setup_repos.py` checks when it confirms every
+  `base_commit` and gold file exists.
+- **Checkout uses `--force`:** a dirty working tree would otherwise leave an
+  instance silently evaluated against a different revision, which is the same
+  class of error in the other direction.
+- **How to read the numbers:** they describe a system that saw the repository
+  exactly as it stood when the bug was reported. Any change to how the checkout
+  is prepared has to preserve that, or the results stop being comparable with
+  earlier runs.
+
 ### D-009 · A hit requires the full repository-relative path
 **2026-08-06**
 
