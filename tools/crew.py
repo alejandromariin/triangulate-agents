@@ -9,7 +9,9 @@ from pathlib import Path
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
+from tools.deps import imported_by, imports
 from tools.files import list_directory, read_file
+from tools.history import git_blame, git_log
 from tools.search import ripgrep_search
 
 
@@ -70,6 +72,86 @@ class SearchTool(BaseTool):
         return ripgrep_search(self.root, pattern, glob)
 
 
-# The three tools bound to one instance's checkout.
+class GitLogArgs(BaseModel):
+    path: str = Field(default=".", description="File or directory to look at, or '.' for the whole repository")
+
+
+class GitLogTool(BaseTool):
+    name: str = "git_log"
+    description: str = (
+        "Recent commits touching a file or directory, newest first, as "
+        "'hash date author: subject'. Bugs cluster in code that changed recently, so a "
+        "file with several recent commits is a stronger candidate than an untouched one. "
+        "The history stops at the revision the bug was reported against."
+    )
+    args_schema: type[BaseModel] = GitLogArgs
+    root: Path
+
+    def _run(self, path: str = ".") -> str:
+        return git_log(self.root, path)
+
+
+class GitBlameArgs(BaseModel):
+    path: str = Field(description="Repository-relative file path")
+    start: int = Field(default=1, description="First line to annotate, 1-based")
+    end: int | None = Field(default=None, description="Last line; at most 60 lines are returned")
+
+
+class GitBlameTool(BaseTool):
+    name: str = "git_blame"
+    description: str = (
+        "Annotate a range of lines with the commit, author and date that last changed each "
+        "one. Use it once you have a suspicious range: a line touched days before the "
+        "report is far more suspicious than one untouched for a decade."
+    )
+    args_schema: type[BaseModel] = GitBlameArgs
+    root: Path
+
+    def _run(self, path: str, start: int = 1, end: int | None = None) -> str:
+        return git_blame(self.root, path, start, end)
+
+
+class ImportsArgs(BaseModel):
+    path: str = Field(description="Repository-relative file path")
+
+
+class ImportsTool(BaseTool):
+    name: str = "imports"
+    description: str = (
+        "List the modules a file imports, read from its syntax tree. Use it to follow the "
+        "bug outwards: if a file looks involved but the fault is not in it, the culprit is "
+        "often one of its dependencies."
+    )
+    args_schema: type[BaseModel] = ImportsArgs
+    root: Path
+
+    def _run(self, path: str) -> str:
+        return imports(self.root, path)
+
+
+class ImportedByTool(BaseTool):
+    name: str = "imported_by"
+    description: str = (
+        "Find the files that import a given one, as 'path:line:text'. The reverse of "
+        "'imports': use it when a file behaves correctly on its own and the fault is "
+        "likely in one of its callers. Lexical, so it misses relative imports."
+    )
+    args_schema: type[BaseModel] = ImportsArgs
+    root: Path
+
+    def _run(self, path: str) -> str:
+        return imported_by(self.root, path)
+
+
+# Every tool, bound to one instance's checkout. Ordered by how often they are the
+# right first move, since that ordering is part of what the model sees.
 def build_tools(root: Path) -> list[BaseTool]:
-    return [SearchTool(root=root), ListDirectoryTool(root=root), ReadFileTool(root=root)]
+    return [
+        SearchTool(root=root),
+        ListDirectoryTool(root=root),
+        ReadFileTool(root=root),
+        GitLogTool(root=root),
+        GitBlameTool(root=root),
+        ImportsTool(root=root),
+        ImportedByTool(root=root),
+    ]
