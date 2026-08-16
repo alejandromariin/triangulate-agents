@@ -14,11 +14,11 @@ import time
 from pathlib import Path
 
 from evals.scorers import aggregate, score
-from flows.single import run as run_single
+from flows import sequential, single
 from tools.workspace import load_instances
 
 RUNS_DIR = Path("reports/runs")
-TOPOLOGY = "single"
+TOPOLOGIES = {"single": single.run, "sequential": sequential.run}
 MAX_USD = 1.00
 
 # An instance costs tens of thousands of tokens in a few seconds, which is fast
@@ -35,8 +35,8 @@ def select(split: str, limit: int | None) -> list[dict]:
     return instances[:limit] if limit else instances
 
 
-def run_instance(instance: dict) -> dict:
-    result = run_single(instance)
+def run_instance(topology: str, instance: dict) -> dict:
+    result = TOPOLOGIES[topology](instance)
     record = score(result, instance["gold_files"])
     record["instance_id"] = instance["instance_id"]
     record["repo"] = instance["repo"]
@@ -73,12 +73,13 @@ def write(path: Path, payload: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--topology", default="single", choices=sorted(TOPOLOGIES))
     parser.add_argument("--split", default="dev", choices=["dev", "heldout"])
     parser.add_argument("--limit", type=int)
     parser.add_argument("--max-usd", type=float, default=MAX_USD)
     args = parser.parse_args()
 
-    run_dir = RUNS_DIR / f"{TOPOLOGY}_{args.split}"
+    run_dir = RUNS_DIR / f"{args.topology}_{args.split}"
     instances = select(args.split, args.limit)
     records = []
     failures = []
@@ -99,7 +100,7 @@ def main() -> None:
 
         print(head, flush=True)
         try:
-            record = run_instance(instance)
+            record = run_instance(args.topology, instance)
         # A refused or dropped call is expected over dozens of API round trips,
         # and it must not discard the instances already answered. Nothing is
         # written, so a later run retries this instance.
@@ -117,7 +118,7 @@ def main() -> None:
     summary = summarize(records)
     write(
         run_dir / "summary.json",
-        {"topology": TOPOLOGY, "split": args.split, "failed": failures, **summary},
+        {"topology": args.topology, "split": args.split, "failed": failures, **summary},
     )
     print(f"\n{run_dir}")
     print(json.dumps(summary["all"], indent=2))
