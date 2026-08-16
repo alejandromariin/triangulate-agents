@@ -58,6 +58,10 @@ two instances are not read as differences.
 | ~2 GB of disk | the twelve cloned repositories |
 | an OpenAI API key | only to run the agents; building the dataset needs none |
 
+On Windows, prefix debugging commands with `PYTHONIOENCODING=utf-8`: agent logs
+contain characters the default console encoding cannot represent, and without it
+the log is replaced by encoding errors.
+
 Installing ripgrep:
 
 ```bash
@@ -110,7 +114,9 @@ uv run python -m evals.runner --split dev --max-usd 1   # the whole split, under
 ```
 
 Results go to `reports/runs/<topology>_<split>/`, one file per instance written as
-it finishes, plus a `summary.json`. Rerunning resumes: instances already answered
+it finishes, plus a `summary.json`. Each record keeps the ranked answer, its
+reasoning and what every agent produced along the way — for the hierarchical
+topology, which specialists the manager involved and what it asked them. Rerunning resumes: instances already answered
 are not paid for twice. Delete the directory to answer them again — which is
 required after any change to prompts or budgets, or the summary would average
 answers produced under different conditions.

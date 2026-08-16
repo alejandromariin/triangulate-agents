@@ -14,11 +14,15 @@ import time
 from pathlib import Path
 
 from evals.scorers import aggregate, score
-from flows import sequential, single
+from flows import hierarchical, sequential, single
 from tools.workspace import load_instances
 
 RUNS_DIR = Path("reports/runs")
-TOPOLOGIES = {"single": single.run, "sequential": sequential.run}
+TOPOLOGIES = {
+    "single": single.run,
+    "sequential": sequential.run,
+    "hierarchical": hierarchical.run,
+}
 MAX_USD = 1.00
 
 # An instance costs tens of thousands of tokens in a few seconds, which is fast
