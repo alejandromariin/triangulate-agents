@@ -44,6 +44,7 @@ def run_instance(topology: str, instance: dict) -> dict:
     record["gold_files"] = instance["gold_files"]
     record["files"] = result.files
     record["reasoning"] = result.reasoning
+    record["stages"] = result.stages
     return record
 
 

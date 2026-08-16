@@ -10,9 +10,9 @@ from crewai import Agent, Crew, Process, Task
 
 from flows.common import (
     INVESTIGATION_RULES,
+    LANGUAGE_MODEL,
     MAX_CANDIDATES,
     MAX_ITER,
-    MODEL,
     PATH_FORMAT,
     Localization,
     LocalizationResult,
@@ -37,7 +37,7 @@ def build_agent(root: Path) -> Agent:
             "before committing to an answer. You never guess a path you have not seen."
         ),
         tools=build_tools(root),
-        llm=MODEL,
+        llm=LANGUAGE_MODEL,
         max_iter=MAX_ITER,
         allow_delegation=False,
         verbose=False,

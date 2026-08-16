@@ -8,12 +8,17 @@ from the architecture, not from one of them having been asked more clearly.
 import time
 from dataclasses import dataclass, field
 
-from crewai import Crew
+from crewai import LLM, Crew
 from pydantic import BaseModel, Field
 
 MODEL = "openai/gpt-5.6-luna"
 MAX_ITER = 15
 MAX_CANDIDATES = 5
+
+# Shared by every agent of every topology. temperature=0 narrows the run-to-run
+# variation that would otherwise be indistinguishable from a difference between
+# topologies; it does not remove it.
+LANGUAGE_MODEL = LLM(model=MODEL, temperature=0)
 
 
 # The shape every topology answers with, so the harness can treat them alike.
@@ -24,6 +29,9 @@ class LocalizationResult:
     reasoning: str
     seconds: float
     usage: dict = field(default_factory=dict)
+    # What each agent concluded before the answer was written. Without it a wrong
+    # answer says only that the topology failed, not at which point it failed.
+    stages: list[dict] = field(default_factory=list)
 
 
 # Scoring compares paths verbatim, so the format it demands is stated in the
@@ -53,6 +61,16 @@ def bug_report(instance: dict) -> str:
     return f"--- bug report ---\n{instance['problem_statement']}"
 
 
+# Everything the topology produced before its final answer, which the last task
+# holds and the result already carries.
+def stages(crew: Crew) -> list[dict]:
+    return [
+        {"role": task.agent.role, "output": task.output.raw}
+        for task in crew.tasks[:-1]
+        if task.output
+    ]
+
+
 def run_crew(crew: Crew, instance_id: str) -> LocalizationResult:
     started = time.perf_counter()
     output = crew.kickoff()
@@ -65,4 +83,5 @@ def run_crew(crew: Crew, instance_id: str) -> LocalizationResult:
         reasoning=answer.reasoning,
         seconds=elapsed,
         usage=dict(crew.usage_metrics) if crew.usage_metrics else {},
+        stages=stages(crew),
     )

@@ -13,9 +13,9 @@ from crewai import Agent, Crew, Process, Task
 
 from flows.common import (
     INVESTIGATION_RULES,
+    LANGUAGE_MODEL,
     MAX_CANDIDATES,
     MAX_ITER,
-    MODEL,
     PATH_FORMAT,
     Localization,
     LocalizationResult,
@@ -100,7 +100,7 @@ def build_agent(specialist: Specialist, root: Path) -> Agent:
         goal=specialist.goal,
         backstory=specialist.backstory,
         tools=[tool for tool in build_tools(root) if tool.name in specialist.tools],
-        llm=MODEL,
+        llm=LANGUAGE_MODEL,
         max_iter=MAX_ITER,
         allow_delegation=False,
         verbose=False,

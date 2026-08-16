@@ -42,6 +42,11 @@ populations are of very different difficulty, and an aggregate hides it.
 The comparison is between topologies, all of them evaluated on the same instances
 under the same budget, with the same model.
 
+Every agent runs at `temperature=0`, but the system remains stochastic: the same
+topology can rank the same bug differently on two runs. Numbers are produced by a
+single run per topology, so they carry sampling noise, and differences of one or
+two instances are not read as differences.
+
 ## Requirements
 
 | | Why |

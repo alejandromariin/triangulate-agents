@@ -9,6 +9,32 @@ left to the code.
 
 ---
 
+### D-012 · The system is stochastic, and differences of one instance are not read as differences
+**2026-08-16**
+
+Two runs of the same topology, with the same prompts and the same code, are not
+guaranteed to produce the same answers. This was observed rather than assumed:
+on `django__django-15902` the sequential topology ranked the gold file first in
+one run and second in the next, with nothing changed between them but a field
+being recorded.
+
+- **Mitigated** by fixing `temperature=0` for every agent of every topology,
+  which narrows the variation. It does not eliminate it: tool call ordering and
+  provider-side non-determinism remain.
+- **Considered:** running each instance several times and averaging, which is the
+  direct answer to sampling noise, and not adopted. The consequence is stated
+  rather than hidden: every reported figure comes from a single run per topology
+  and carries that noise.
+- **How to read the numbers:** a gap of one or two instances between two
+  topologies is not evidence that they differ. With 26 dev instances, one
+  instance moves accuracy by ~4 points, so only differences of several points
+  are discussed as differences. Per-instance comparisons are read the same way —
+  a single bug that one topology wins is a lead to investigate in its recorded
+  stages, not a result.
+- **Practical consequence:** results cannot be reproduced exactly from the same
+  command. Reproducing the *conclusions* is the claim; reproducing the JSON byte
+  for byte is not.
+
 ### D-011 · Results are cached per instance, and a run can stop early
 **2026-08-16**
 
