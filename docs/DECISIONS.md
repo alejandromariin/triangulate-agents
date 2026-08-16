@@ -9,6 +9,32 @@ left to the code.
 
 ---
 
+### D-011 · Results are cached per instance, and a run can stop early
+**2026-08-16**
+
+Each answered instance is written to `reports/runs/<topology>_<split>/` on its
+own. A later run of the same topology and split reuses those files instead of
+asking the model again, and stops before starting an instance once the run's
+spend passes `--max-usd`.
+
+- **Why cache:** a run over a split is a sequence of paid, independent calls. A
+  failure in the middle would otherwise discard every answer before it, and the
+  natural response — rerunning the whole split — would pay for them twice. The
+  cost of the experiment should be proportional to the instances that still need
+  answering, not to the number of times something went wrong.
+- **Why the cap is checked before an instance rather than after:** a limit
+  enforced after the call has already spent the money it exists to prevent.
+- **How to read the numbers:** a summary reports `n`, and `n` may be smaller than
+  the split — because of `--limit`, or because the cap stopped the run. A row is
+  only comparable with another row of the same `n` over the same instances, which
+  is why `--limit` selects instances in a fixed order rather than at random.
+- **The cache is keyed by topology and split only**, not by prompt or budget. It
+  therefore cannot tell that a stored answer was produced under different
+  conditions, and mixing them would silently average two systems into one row.
+  Changing a prompt, a candidate cap or an iteration cap means deleting the run
+  directory; the alternative — hashing the configuration into the key — was
+  rejected as machinery guarding a step that is one command.
+
 ### D-010 · The repository is exposed at `base_commit`, and nothing after it
 **2026-08-06**
 

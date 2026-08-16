@@ -97,13 +97,28 @@ print(result.files, result.usage)
 Every topology exposes the same `run(instance) -> LocalizationResult`: a ranked
 list of files plus the reasoning, elapsed time and token usage.
 
+Evaluating one over a whole split:
+
+```bash
+uv run python -m evals.runner --split dev --limit 5     # try it on five instances
+uv run python -m evals.runner --split dev --max-usd 1   # the whole split, under a cap
+```
+
+Results go to `reports/runs/<topology>_<split>/`, one file per instance written as
+it finishes, plus a `summary.json`. Rerunning resumes: instances already answered
+are not paid for twice. Delete the directory to answer them again — which is
+required after any change to prompts or budgets, or the summary would average
+answers produced under different conditions.
+
 ## Layout
 
 ```
 scripts/   golden set construction and repository setup
-tools/     read-only access to a checkout: workspace, files, search, crew adapters
+tools/     read-only access to a checkout: files, search, history, imports
 flows/     one module per topology, all exposing run(instance)
+evals/     scorers and the runner that executes a topology over a split
 data/      golden_set_v1.json (committed) and repos/ (regenerable, ignored)
+reports/   per-instance results and summaries of each run
 docs/      decision log
 ```
 
