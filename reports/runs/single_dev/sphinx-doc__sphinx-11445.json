@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 13.050581300049089,
+  "prompt_tokens": 48692,
+  "completion_tokens": 501,
+  "cost_usd": 0.010339600000000001,
+  "instance_id": "sphinx-doc__sphinx-11445",
+  "repo": "sphinx-doc/sphinx",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sphinx/util/rst.py"
+  ],
+  "files": [
+    "sphinx/util/rst.py",
+    "sphinx/environment/collectors/title.py",
+    "sphinx/environment/collectors/toctree.py"
+  ],
+  "reasoning": "sphinx/parsers.py prepends rst_prolog through sphinx/util/rst.py before Docutils parses the document. The affected heading then becomes the first section after injected prolog content, while title and TOC extraction are handled by sphinx/environment/collectors/title.py and sphinx/environment/collectors/toctree.py. These product files contain the preprocessing and first-heading/title handling that must be adjusted so a domain-role heading remains the document title and first toctree entry when rst_prolog is configured."
+}

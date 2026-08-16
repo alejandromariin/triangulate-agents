@@ -1,0 +1,24 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 14.376632499974221,
+  "prompt_tokens": 24711,
+  "completion_tokens": 206,
+  "cost_usd": 0.0051894,
+  "instance_id": "psf__requests-3362",
+  "repo": "psf/requests",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "requests/utils.py"
+  ],
+  "files": [
+    "requests/models.py",
+    "requests/utils.py"
+  ],
+  "reasoning": "The reported behavior is implemented in Response.iter_content() in requests/models.py, which delegates decode_unicode=True to stream_decode_response_unicode(). That helper in requests/utils.py yields raw bytes whenever r.encoding is None, while Response.text independently falls back to apparent_encoding, explaining why JSON responses can differ. These are the product-code files requiring modification; tests were excluded."
+}

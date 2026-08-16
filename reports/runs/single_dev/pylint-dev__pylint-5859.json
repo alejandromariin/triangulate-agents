@@ -1,0 +1,23 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 10.423478199983947,
+  "prompt_tokens": 13885,
+  "completion_tokens": 203,
+  "cost_usd": 0.0030206,
+  "instance_id": "pylint-dev__pylint-5859",
+  "repo": "pylint-dev/pylint",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "pylint/checkers/misc.py"
+  ],
+  "files": [
+    "pylint/checkers/misc.py"
+  ],
+  "reasoning": "The bug is in EncodingChecker.open(), where configured note tags are assembled into a regex ending with \\b. A tag consisting entirely of punctuation, such as ???, has no word-boundary position after it, so the pattern cannot match. The same checker performs the W0511 detection in process_tokens()."
+}

@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 46.21215799998026,
+  "prompt_tokens": 97945,
+  "completion_tokens": 815,
+  "cost_usd": 0.020567,
+  "instance_id": "pylint-dev__pylint-7228",
+  "repo": "pylint-dev/pylint",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "pylint/config/argument.py"
+  ],
+  "files": [
+    "pylint/config/argument.py",
+    "pylint/config/option.py"
+  ],
+  "reasoning": "Both configuration parsing paths compile regex-valued options directly with Python's re.compile: pylint/config/argument.py maps the modern argparse \"regexp\" type to re.compile and compiles regexp CSV values, while pylint/config/option.py does the same for the legacy optparse path. Since Python's standard regex engine rejects \\p{Han}, these are the product files that must be changed to support or otherwise safely handle the reported pattern."
+}

@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 15.213732600037474,
+  "prompt_tokens": 33574,
+  "completion_tokens": 619,
+  "cost_usd": 0.0074576,
+  "instance_id": "pydata__xarray-4248",
+  "repo": "pydata/xarray",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "xarray/core/formatting.py"
+  ],
+  "files": [
+    "xarray/core/formatting.py",
+    "xarray/core/formatting_html.py"
+  ],
+  "reasoning": "The plain-text Dataset repr is assembled in xarray/core/formatting.py, where summarize_variable currently formats each variable's name, dimensions, and dtype but does not include attrs such as units. The HTML Dataset repr uses separate summarization functions in xarray/core/formatting_html.py, so its coordinate and data-variable overview also needs the units display updated."
+}

@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 17.07957320002606,
+  "prompt_tokens": 75291,
+  "completion_tokens": 457,
+  "cost_usd": 0.0156066,
+  "instance_id": "matplotlib__matplotlib-25498",
+  "repo": "matplotlib/matplotlib",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "lib/matplotlib/colorbar.py"
+  ],
+  "files": [
+    "lib/matplotlib/colorbar.py",
+    "lib/matplotlib/cm.py",
+    "lib/matplotlib/colors.py"
+  ],
+  "reasoning": "lib/matplotlib/colorbar.py contains Colorbar.update_normal(), which is responsible for synchronizing the colorbar with a mappable's changed norm, as well as _process_values() and _mesh(), where the reported ZeroDivisionError path is handled. lib/matplotlib/cm.py defines the mappable.norm setter and set_norm(), including callback notification intended to update attached colorbars when the norm instance changes. lib/matplotlib/colors.py defines LogNorm and its generated inverse behavior, which is involved in the failing inverse calculation after replacing the norm."
+}

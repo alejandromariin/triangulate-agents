@@ -1,0 +1,25 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 13.83224280003924,
+  "prompt_tokens": 28239,
+  "completion_tokens": 346,
+  "cost_usd": 0.006063,
+  "instance_id": "psf__requests-2148",
+  "repo": "psf/requests",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "requests/models.py"
+  ],
+  "files": [
+    "requests/packages/urllib3/response.py",
+    "requests/models.py",
+    "requests/adapters.py"
+  ],
+  "reasoning": "The reported socket reset occurs while consuming response content, after the initial request has returned. In requests/packages/urllib3/response.py, HTTPResponse.read() catches socket timeouts, SSL errors, and HTTPException but not socket.error, allowing the raw socket exception to escape. requests/models.py is the response-content consumption path that invokes raw.stream() and currently wraps only IncompleteRead and DecodeError. requests/adapters.py contains the outer request-time socket.error-to-ConnectionError conversion, but that handler does not cover deferred response-body reads; it may need adjustment depending on where the wrapping is implemented."
+}

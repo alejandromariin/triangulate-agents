@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 10.972243199998047,
+  "prompt_tokens": 36367,
+  "completion_tokens": 271,
+  "cost_usd": 0.0075986000000000005,
+  "instance_id": "astropy__astropy-7746",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/wcs/wcs.py"
+  ],
+  "files": [
+    "astropy/wcs/wcs.py",
+    "astropy/wcs/src/wcslib_wrap.c"
+  ],
+  "reasoning": "The Python failure originates in WCS._array_converter(), where empty coordinate arrays are reshaped and passed directly to self.wcs.p2s(). The C wrapper then calls wcsp2s() with ncoord/nelem values that wcslib rejects for zero-length inputs. These are the product-code locations that must handle empty arrays before invoking the transformation."
+}

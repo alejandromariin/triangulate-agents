@@ -10,6 +10,7 @@ stopped. Delete the run directory to force everything to be answered again.
 
 import argparse
 import json
+import time
 from pathlib import Path
 
 from evals.scorers import aggregate, score
@@ -19,6 +20,11 @@ from tools.workspace import load_instances
 RUNS_DIR = Path("reports/runs")
 TOPOLOGY = "single"
 MAX_USD = 1.00
+
+# An instance costs tens of thousands of tokens in a few seconds, which is fast
+# enough to hit a per-minute account limit. Held below it deliberately, since
+# waiting between instances is cheaper than losing one to a refused call.
+TOKENS_PER_MINUTE = 150_000
 
 
 def select(split: str, limit: int | None) -> list[dict]:
@@ -51,6 +57,15 @@ def summarize(records: list[dict]) -> dict:
     }
 
 
+# Wait until the tokens just spent fit inside the allowance, counting the time
+# the instance itself took.
+def pace(record: dict) -> None:
+    tokens = record["prompt_tokens"] + record["completion_tokens"]
+    delay = tokens / TOKENS_PER_MINUTE * 60 - record["seconds"]
+    if delay > 0:
+        time.sleep(delay)
+
+
 def write(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -66,6 +81,7 @@ def main() -> None:
     run_dir = RUNS_DIR / f"{TOPOLOGY}_{args.split}"
     instances = select(args.split, args.limit)
     records = []
+    failures = []
     spent = 0.0
 
     for position, instance in enumerate(instances, start=1):
@@ -82,14 +98,27 @@ def main() -> None:
             break
 
         print(head, flush=True)
-        record = run_instance(instance)
+        try:
+            record = run_instance(instance)
+        # A refused or dropped call is expected over dozens of API round trips,
+        # and it must not discard the instances already answered. Nothing is
+        # written, so a later run retries this instance.
+        except Exception as error:
+            print(f"    failed: {type(error).__name__}: {error}")
+            failures.append(instance["instance_id"])
+            continue
+
         write(path, record)
         spent += record["cost_usd"]
         records.append(record)
         print(f"    rank {record['rank']}  {record['seconds']:.0f}s  ${record['cost_usd']:.4f}")
+        pace(record)
 
     summary = summarize(records)
-    write(run_dir / "summary.json", {"topology": TOPOLOGY, "split": args.split, **summary})
+    write(
+        run_dir / "summary.json",
+        {"topology": TOPOLOGY, "split": args.split, "failed": failures, **summary},
+    )
     print(f"\n{run_dir}")
     print(json.dumps(summary["all"], indent=2))
 

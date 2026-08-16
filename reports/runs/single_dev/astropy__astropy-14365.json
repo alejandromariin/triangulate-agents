@@ -1,0 +1,23 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 10.34891369997058,
+  "prompt_tokens": 28254,
+  "completion_tokens": 287,
+  "cost_usd": 0.0059952,
+  "instance_id": "astropy__astropy-14365",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "reasoning": "The QDP parser is implemented in astropy/io/ascii/qdp.py. Its _line_type() function defines the command regular expression as `READ [TS]ERR...`, making command recognition case-sensitive and causing lowercase commands such as `read serr 1 2` to raise the reported ValueError. The same file subsequently parses recognized command lines and already lowercases the command type, so the required product-code fix is localized to this file."
+}

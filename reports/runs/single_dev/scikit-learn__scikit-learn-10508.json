@@ -1,0 +1,23 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 13.213681599998381,
+  "prompt_tokens": 31781,
+  "completion_tokens": 232,
+  "cost_usd": 0.0066346,
+  "instance_id": "scikit-learn__scikit-learn-10508",
+  "repo": "scikit-learn/scikit-learn",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "sklearn/preprocessing/label.py"
+  ],
+  "files": [
+    "sklearn/preprocessing/label.py"
+  ],
+  "reasoning": "LabelEncoder is implemented in sklearn/preprocessing/label.py. Its transform method passes the input returned by column_or_1d directly to np.searchsorted(self.classes_, y); for an empty Python list, NumPy creates a float64 array, which cannot be safely cast when classes_ has a Unicode dtype. This is the direct product-code location requiring the fix."
+}

@@ -1,0 +1,23 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 14.747183199971914,
+  "prompt_tokens": 23858,
+  "completion_tokens": 254,
+  "cost_usd": 0.005076400000000001,
+  "instance_id": "django__django-11179",
+  "repo": "django/django",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "django/db/models/deletion.py"
+  ],
+  "files": [
+    "django/db/models/deletion.py"
+  ],
+  "reasoning": "The reported line is in django/db/models/deletion.py. Collector.delete() has a single-object, no-dependencies fast-delete optimization that returns immediately after deleting the database row, bypassing the later instance PK reset at lines 324-326. This file must be modified so the optimized path sets the instance primary key to None before returning."
+}

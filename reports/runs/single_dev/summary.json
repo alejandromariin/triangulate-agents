@@ -1,0 +1,41 @@
+{
+  "topology": "single",
+  "split": "dev",
+  "failed": [],
+  "all": {
+    "accuracy@1": 0.8461538461538461,
+    "accuracy@3": 0.9230769230769231,
+    "accuracy@5": 0.9230769230769231,
+    "mrr": 0.8846153846153846,
+    "n": 26,
+    "bare_names": 0,
+    "seconds": 20.267530923077945,
+    "prompt_tokens": 47846.03846153846,
+    "completion_tokens": 389.0769230769231,
+    "cost_usd": 0.2609386
+  },
+  "hinted": {
+    "accuracy@1": 0.9090909090909091,
+    "accuracy@3": 1,
+    "accuracy@5": 1,
+    "mrr": 0.9545454545454546,
+    "n": 11,
+    "bare_names": 0,
+    "seconds": 14.905384627266109,
+    "prompt_tokens": 41754.63636363636,
+    "completion_tokens": 342.72727272727275,
+    "cost_usd": 0.0963842
+  },
+  "unhinted": {
+    "accuracy@1": 0.8,
+    "accuracy@3": 0.8666666666666667,
+    "accuracy@5": 0.8666666666666667,
+    "mrr": 0.8333333333333334,
+    "n": 15,
+    "bare_names": 0,
+    "seconds": 24.199771540006623,
+    "prompt_tokens": 52313.066666666666,
+    "completion_tokens": 423.06666666666666,
+    "cost_usd": 0.1645544
+  }
+}

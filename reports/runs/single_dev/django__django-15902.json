@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 13.534152000036556,
+  "prompt_tokens": 33535,
+  "completion_tokens": 273,
+  "cost_usd": 0.0070346,
+  "instance_id": "django__django-15902",
+  "repo": "django/django",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "django/forms/formsets.py"
+  ],
+  "files": [
+    "django/forms/formsets.py",
+    "django/forms/utils.py"
+  ],
+  "reasoning": "ManagementForm is defined and instantiated in django/forms/formsets.py, where it inherits the renderable form behavior and is given a renderer. The deprecation warning is emitted centrally by RenderableMixin.render() in django/forms/utils.py whenever the default form or formset template is rendered; special-casing management forms to avoid the warning would require coordinating with this rendering path."
+}
