@@ -15,13 +15,13 @@ MODEL = "openai/gpt-5.6-luna"
 MAX_ITER = 15
 MAX_CANDIDATES = 5
 
-# temperature=0 narrows the run-to-run variation that would otherwise be
-# indistinguishable from a difference between topologies; it does not remove it.
+# The model rejects any temperature other than its default, so run-to-run
+# variation cannot be narrowed here and is handled by how the results are read.
 # A fresh instance per agent, because an LLM object accumulates the tokens it has
 # spent and reusing one across instances would report each one's cost as the
 # running total of every instance before it.
 def language_model() -> LLM:
-    return LLM(model=MODEL, temperature=0)
+    return LLM(model=MODEL)
 
 
 # The shape every topology answers with, so the harness can treat them alike.

@@ -18,9 +18,12 @@ on `django__django-15902` the sequential topology ranked the gold file first in
 one run and second in the next, with nothing changed between them but a field
 being recorded.
 
-- **Mitigated** by fixing `temperature=0` for every agent of every topology,
-  which narrows the variation. It does not eliminate it: tool call ordering and
-  provider-side non-determinism remain.
+- **Not mitigated at the model.** Fixing `temperature=0` is the usual answer and
+  is not available: the model rejects any value other than its default. This was
+  found the hard way — agents holding tools call the model through a path that
+  never sends the parameter, so the setting appeared to work for three
+  topologies and only failed once an agent without tools was introduced. It had
+  been changing nothing all along.
 - **Considered:** running each instance several times and averaging, which is the
   direct answer to sampling noise, and not adopted. The consequence is stated
   rather than hidden: every reported figure comes from a single run per topology

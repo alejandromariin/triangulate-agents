@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 from evals.scorers import aggregate, score
-from flows import hierarchical, sequential, single
+from flows import hierarchical, parallel, sequential, single
 from tools.workspace import load_instances
 
 RUNS_DIR = Path("reports/runs")
@@ -22,6 +22,7 @@ TOPOLOGIES = {
     "single": single.run,
     "sequential": sequential.run,
     "hierarchical": hierarchical.run,
+    "parallel": parallel.run,
 }
 MAX_USD = 1.00
 
