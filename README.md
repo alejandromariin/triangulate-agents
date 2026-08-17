@@ -14,6 +14,26 @@ change, scored against the files the real fix actually touched.
 Nothing from the analyzed repositories is ever executed. They are cloned, checked
 out at the relevant commit, and read.
 
+## The topologies
+
+Three signals locate a bug: the words of the report (lexical — search, directory
+listing, file reading), what changed recently (historical — log and blame), and
+who imports whom (structural — the import graph). A specialist agent holds the
+tools of one signal each; the topologies differ only in how the specialists are
+arranged.
+
+| Topology | Arrangement | The question it answers |
+|---|---|---|
+| `single` | one agent holding every tool | is a single well-equipped agent enough? |
+| `sequential` | lexical → historical → structural, each stage refining the last | does accumulated context beat independence? |
+| `hierarchical` | a triage manager delegates to the specialists it finds relevant | does routing save cost without losing accuracy? |
+| `parallel` | all three at once from the raw report, a synthesizer reconciles | does independence find what a chain funnels away? |
+
+Every topology answers with at most 5 candidate files, and every agent is capped
+at 15 tool-using iterations — accuracy is measured under that budget, and the
+caps are identical across topologies so that no row can buy accuracy with room
+the others were not given.
+
 ## What is measured
 
 **These are not SWE-bench numbers.** SWE-bench reports `% resolved`: a system
@@ -29,7 +49,7 @@ The metrics are therefore defined here rather than inherited:
 | Accuracy@1 / @3 / @5 | is the gold file among the first k candidates? |
 | MRR | how highly was it ranked? `1/rank`, averaged over instances |
 | tokens, cost, wall-clock | what the answer cost to produce |
-| tool calls, repeated calls | how the topology spent its budget |
+| malformed candidates | answers that name a file without locating it — a format failure, not a reasoning one |
 
 Precision, recall and F1 are not reported: every instance in SWE-bench Lite has
 exactly one gold file, which makes precision degenerate — a correct answer inside
@@ -106,20 +126,30 @@ print(result.files, result.usage)
 Every topology exposes the same `run(instance) -> LocalizationResult`: a ranked
 list of files plus the reasoning, elapsed time and token usage.
 
-Evaluating one over a whole split:
+Evaluating a topology over a whole split:
 
 ```bash
-uv run python -m evals.runner --split dev --limit 5     # try it on five instances
-uv run python -m evals.runner --split dev --max-usd 1   # the whole split, under a cap
+uv run python -m evals.runner --topology single --split dev --limit 5   # five instances, to try it
+uv run python -m evals.runner --topology parallel --split dev --max-usd 1
 ```
 
-Results go to `reports/runs/<topology>_<split>/`, one file per instance written as
-it finishes, plus a `summary.json`. Each record keeps the ranked answer, its
+Once several topologies have been run over the same split, comparing them:
+
+```bash
+uv run python -m evals.report --split dev   # -> reports/comparison_dev.md
+```
+
+The comparison is restricted to the instances every topology answered, and any
+instance left out is listed rather than silently dropped.
+
+Results go to `reports/runs/<topology>_<split>/`, one file per instance written
+as it finishes, plus a `summary.json`. Each record keeps the ranked answer, its
 reasoning and what every agent produced along the way — for the hierarchical
-topology, which specialists the manager involved and what it asked them. Rerunning resumes: instances already answered
-are not paid for twice. Delete the directory to answer them again — which is
-required after any change to prompts or budgets, or the summary would average
-answers produced under different conditions.
+topology, which specialists the manager involved and what it asked them.
+Rerunning resumes: instances already answered are not paid for twice. Delete the
+directory to answer them again — which is required after any change to prompts
+or budgets, or the summary would average answers produced under different
+conditions.
 
 ## Layout
 

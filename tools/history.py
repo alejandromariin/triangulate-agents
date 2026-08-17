@@ -45,6 +45,8 @@ def git_log(root: Path, path: str = ".", limit: int = MAX_COMMITS) -> str:
     )
     if not output:
         return f"no commits touching {path}"
+    if output.startswith("git failed:"):
+        return output
     return f"last {limit} commits touching {path}\n{output}"
 
 
