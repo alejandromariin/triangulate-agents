@@ -1,0 +1,43 @@
+{
+  "topology": "parallel",
+  "split": "heldout",
+  "failed": [
+    "matplotlib__matplotlib-26011"
+  ],
+  "all": {
+    "accuracy@1": 0.9090909090909091,
+    "accuracy@3": 1,
+    "accuracy@5": 1,
+    "mrr": 0.9545454545454546,
+    "n": 11,
+    "bare_names": 0,
+    "seconds": 20.006835618188646,
+    "prompt_tokens": 83015.90909090909,
+    "completion_tokens": 2030.2727272727273,
+    "cost_usd": 0.20943460000000003
+  },
+  "hinted": {
+    "accuracy@1": 0.8,
+    "accuracy@3": 1,
+    "accuracy@5": 1,
+    "mrr": 0.9,
+    "n": 5,
+    "bare_names": 0,
+    "seconds": 18.262639059999493,
+    "prompt_tokens": 59787.4,
+    "completion_tokens": 1924,
+    "cost_usd": 0.0713314
+  },
+  "unhinted": {
+    "accuracy@1": 1,
+    "accuracy@3": 1,
+    "accuracy@5": 1,
+    "mrr": 1.0,
+    "n": 6,
+    "bare_names": 0,
+    "seconds": 21.46033275001294,
+    "prompt_tokens": 102373,
+    "completion_tokens": 2118.8333333333335,
+    "cost_usd": 0.1381032
+  }
+}

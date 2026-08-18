@@ -1,0 +1,39 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 18.1113245000015,
+  "prompt_tokens": 86388,
+  "completion_tokens": 1953,
+  "cost_usd": 0.019621200000000002,
+  "instance_id": "astropy__astropy-14182",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "astropy/io/ascii/rst.py"
+  ],
+  "files": [
+    "astropy/io/ascii/rst.py",
+    "astropy/io/ascii/fixedwidth.py",
+    "astropy/io/ascii/core.py"
+  ],
+  "reasoning": "astropy/io/ascii/rst.py is the primary suspect: RST overrides FixedWidth.__init__() without accepting or forwarding header_rows, directly causing the reported TypeError. Its write() logic should also be reviewed because it assumes a single-header separator and may need adjustment for multiple header rows. astropy/io/ascii/fixedwidth.py is the supporting implementation and model, since it already accepts, propagates, and formats header_rows. astropy/io/ascii/core.py is only infrastructure: it forwards writer keywords correctly, exposing the RST constructor defect rather than introducing the bug.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `astropy/io/ascii/rst.py` \u2014 **Most suspicious; high confidence.** Defines the `RST` writer that raises the reported `unexpected keyword argument 'header_rows'`. Its constructor accepts no arguments and calls `FixedWidth.__init__()` with only `delimiter_pad` and `bookend`, unlike the fixed-width writer that exposes `header_rows`. The `RST.write()` method also assumes a single header separator at `lines[1]`, so multi-row headers may require additional output-specific handling. Uncertain whether the complete fix belongs only in the constructor or also in the separator-generation logic.\n\n2. `astropy/io/ascii/fixedwidth.py` \u2014 **High confidence.** Provides the shared implementation for configurable header rows: `FixedWidth.__init__()` accepts `header_rows`, stores it on both header and data objects, and sets the data start line based on its length; `FixedWidthData.write()` formats each requested header row before the position/separator line. This is the likely model for extending `RST`, although RST\u2019s special separator layout may need a subclass-specific adjustment.\n\n3. `astropy/io/ascii/core.py` \u2014 **Moderate confidence.** `_get_writer()` passes writer keyword arguments directly into the writer constructor after filtering only the generic `extra_writer_pars`; therefore `header_rows` reaches `RST(**writer_kwargs)` and produces the reported `TypeError`. This is involved in the call path, but the generic writer dispatch appears intentional, so changing it globally is less likely than updating `RST`.\n\n"
+    },
+    {
+      "role": "History investigator",
+      "output": "1. **astropy/io/ascii/rst.py** \u2014 **Very high confidence**\n\n   This is the strongest candidate. The `RST` class defines:\n\n   ```python\n   def __init__(self):\n       super().__init__(delimiter_pad=None, bookend=False)\n   ```\n\n   Unlike the recently enhanced fixed-width writer, it accepts no `header_rows` argument. The reported exception is therefore directly explained: `header_rows` is passed through the writer construction and rejected by `RST.__init__()`.\n\n   The surrounding implementation also depends on fixed-width behavior:\n\n   ```python\n   class RST(FixedWidth):\n   ```\n\n   so the missing constructor support is likely the only format-specific gap. The file\u2019s relevant implementation is old, with its last substantive feature commit dating to 2016; however, the bug became exposed by the recent fixed-width `header_rows` work rather than by a recent change to `rst.py`.\n\n2. **astropy/io/ascii/fixedwidth.py** \u2014 **High confidence**\n\n   This is the nearby real suspect and provides the implementation pattern that `RST` should follow. Its `FixedWidth.__init__()` was recently changed by commits:\n\n   - `d9dd991f7c6` \u2014 \u201cSupport reading/writing extra header rows for ASCII fixed width\u201d\n   - `27da8f4e94` \u2014 \u201cRefactor header rows support and get tests passing\u201d\n\n   It now accepts and propagates `header_rows`:\n\n   ```python\n   def __init__(\n       self,\n       col_starts=None,\n       col_ends=None,\n       delimiter_pad=\" \",\n       bookend=True,\n       header_rows=None,\n   ):\n       if header_rows is None:\n           header_rows = [\"name\"]\n       ...\n       self.header.header_rows = header_rows\n       self.data.header_rows = header_rows\n   ```\n\n   `RST` inherits from this class but overrides the constructor without forwarding `header_rows`, which is precisely the incompatibility described in the report. This file is not necessarily the final edit target, but its recent history strongly points to the missing override in `astropy/io/ascii/rst.py`.\n\nNo other product-code candidate is supported by the inspected history."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "1. **astropy/io/ascii/rst.py** \u2014 **Very high confidence**  \n   The fault originates here. `RST.__init__()` only accepts `self`, so the writer-construction path rejects `header_rows` before any output logic runs. `RST` subclasses `FixedWidth`, whose constructor already supports `header_rows`; the RST constructor overrides it without forwarding that option. The `write()` override also assumes the standard single-header layout and should be reviewed to ensure the additional header rows are framed correctly.\n\n2. **astropy/io/ascii/fixedwidth.py** \u2014 **High confidence, supporting dependency**  \n   This file contains the working implementation for `header_rows`: `FixedWidth.__init__()` accepts and stores the option, while `FixedWidthData.write()` emits each requested header row and calculates widths accordingly. It is not the primary bug location, but it is the implementation that `RST` should reuse or extend.\n\n3. **astropy/io/ascii/core.py** \u2014 **Medium confidence, infrastructure only**  \n   `core._get_writer()` forwards nonstandard writer keywords to the writer constructor. This correctly exposes the RST constructor defect as `TypeError`; it does not appear faulty itself."
+    }
+  ]
+}

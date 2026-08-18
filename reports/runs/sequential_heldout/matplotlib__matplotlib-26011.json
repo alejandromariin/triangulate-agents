@@ -1,0 +1,34 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 103.5436923999805,
+  "prompt_tokens": 298402,
+  "completion_tokens": 2161,
+  "cost_usd": 0.0622736,
+  "instance_id": "matplotlib__matplotlib-26011",
+  "repo": "matplotlib/matplotlib",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "lib/matplotlib/axis.py"
+  ],
+  "files": [
+    "lib/matplotlib/axis.py",
+    "lib/matplotlib/axes/_base.py"
+  ],
+  "reasoning": "The fault lives in lib/matplotlib/axis.py: Axis._set_lim emits the initiating Axes callback, then propagates limits to shared axes with emit=False, so sibling xlim_changed callbacks are suppressed. lib/matplotlib/axes/_base.py is the public caller path: Axes.set_xlim forwards to Axis._set_lim, and its sharex method uses emit=False for initial synchronization, but it does not implement the runtime shared-axis propagation causing the reported defect.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `lib/matplotlib/axis.py` \u2014 Most suspicious: `Axis._set_lim` emits `xlim_changed` for the initiating axis, then propagates limits to shared axes using `emit=False`, which directly explains why sibling-axis callbacks are not called; I am unsure whether the intended fix belongs in this propagation loop or requires preserving recursion protection another way.\n\n2. `lib/matplotlib/axes/_base.py` \u2014 Defines the public `Axes.set_xlim` method and forwards `emit` to `xaxis._set_lim`; it also uses `emit=False` when initially synchronizing an axis in `sharex`, connecting this file to both `sharex=` setup and the reported API path, though the actual sibling-callback suppression is implemented in `axis.py`.\n\n3. `lib/matplotlib/axes/_base.py` \u2014 Its `sharex` method joins the shared-axis group and copies the other axis\u2019s limits with `self.set_xlim(..., emit=False, ...)`; this explains why callbacks should not be expected during the initial sharing operation itself, but it is less likely to be the reported fault than runtime propagation because the report specifically concerns a change induced by an already shared axis."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `lib/matplotlib/axis.py` \u2014 **Strongest candidate.** The recent history shows active changes in this file, including the January 2023 shared-axis refactor (`12a7f764230`, \u201c...\u201d) and July 2023 optimization work. The relevant implementation is here: `Axis._get_shared_axes()` identifies sibling axes, while the limit-setting implementation (reported in this file) emits the initiating axis\u2019s callback and propagates the new limits to siblings with `emit=False`. That directly suppresses `xlim_changed` callbacks on sibling axes and explains the reported behavior. The fix most likely belongs in this file, preserving recursion protection while separately notifying each sibling after its limit changes.\n\n2. `lib/matplotlib/axes/_base.py` \u2014 **Related, but less likely as the primary defect.** Its recent history is considerably more active than `axis.py`, with July 2023 changes including \u201cMore micro optimizations\u201d and other `Axes` changes. The public `Axes.set_xlim` method forwards `emit` to `self.xaxis._set_lim`, so this file is part of the API path, but it does not implement the sibling callback suppression. Its `sharex` setup also calls `set_xlim(..., emit=False)` when initially synchronizing a newly shared axis. That behavior concerns initial sharing and is distinct from runtime propagation after axes are already shared.\n\n3. `lib/matplotlib/axes/_base.py` \u2014 **Duplicate candidate representing the `sharex` method; retain only as contextual evidence, not as a separate file.** The history confirms this is the same recently changed product file as candidate 2. The `sharex` method joins the shared-axis group and copies limits with `emit=False`, which is reasonable for initialization and does not best match the report\u2019s complaint about a later change induced through an existing shared axis. No additional file is supported by the history as a better suspect."
+    }
+  ]
+}

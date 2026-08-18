@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 18.342917800007854,
+  "prompt_tokens": 34275,
+  "completion_tokens": 301,
+  "cost_usd": 0.0072162,
+  "instance_id": "astropy__astropy-14182",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "astropy/io/ascii/rst.py"
+  ],
+  "files": [
+    "astropy/io/ascii/rst.py"
+  ],
+  "reasoning": "The reported TypeError is caused directly by RST.__init__() accepting no keyword arguments, while the shared writer machinery forwards header_rows to the format writer. astropy/io/ascii/rst.py defines RST as a FixedWidth subclass; its constructor must accept and pass header_rows through to FixedWidth, whose implementation already supports generating multiple header rows.",
+  "stages": []
+}

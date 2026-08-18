@@ -112,6 +112,9 @@ def main() -> None:
         "",
         "## Rank of the gold file, per instance",
         "",
+        "`—` means the topology answered but none of its candidates was the gold "
+        "file. An instance missing from a run appears under *Excluded* instead.",
+        "",
         per_instance_table(runs, shared),
         "",
     ]

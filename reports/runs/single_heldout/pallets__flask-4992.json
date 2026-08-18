@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 9.398770199972205,
+  "prompt_tokens": 14899,
+  "completion_tokens": 182,
+  "cost_usd": 0.0031982000000000004,
+  "instance_id": "pallets__flask-4992",
+  "repo": "pallets/flask",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "src/flask/config.py"
+  ],
+  "files": [
+    "src/flask/config.py"
+  ],
+  "reasoning": "The reported behavior is implemented directly in Config.from_file() in src/flask/config.py. It currently accepts filename, load, and silent parameters, then opens the configuration file with open(filename) in text mode; this is the source that must add and use a mode parameter so binary readers such as tomllib.load() can be supported.",
+  "stages": []
+}

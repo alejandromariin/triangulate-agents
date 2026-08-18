@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 19.98949419998098,
+  "prompt_tokens": 34288,
+  "completion_tokens": 314,
+  "cost_usd": 0.0072344,
+  "instance_id": "pylint-dev__pylint-7993",
+  "repo": "pylint-dev/pylint",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "pylint/reporters/text.py"
+  ],
+  "files": [
+    "pylint/reporters/text.py"
+  ],
+  "reasoning": "The bug is localized to pylint/reporters/text.py. TextReporter validates templates with a regular expression that treats the escaped opening braces in '{{ \"Category\": \"{category}\" }}' as a real format field, incorrectly warning about '{ \"Category\"' and removing part of the template. The same file then formats messages with str.format(), so its template parsing and validation logic must be adjusted to preserve escaped braces.",
+  "stages": []
+}

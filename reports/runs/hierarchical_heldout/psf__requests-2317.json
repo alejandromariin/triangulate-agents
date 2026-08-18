@@ -1,0 +1,34 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 5,
+  "bare_names": 0,
+  "seconds": 21.013071199995466,
+  "prompt_tokens": 18387,
+  "completion_tokens": 999,
+  "cost_usd": 0.0048762,
+  "instance_id": "psf__requests-2317",
+  "repo": "psf/requests",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "requests/sessions.py"
+  ],
+  "files": [
+    "requests/sessions.py",
+    "requests/compat.py",
+    "requests/utils.py",
+    "requests/adapters.py",
+    "requests/models.py"
+  ],
+  "reasoning": "The reported conversion occurs directly in requests/sessions.py, where Session.request() applies builtin_str to the HTTP method. requests/compat.py defines builtin_str as str on Python 3, causing bytes such as b'GET' to become the literal text \"b'GET'\". requests/utils.py contains the existing to_native_string() helper that correctly decodes bytes, while requests/adapters.py passes the malformed method to the HTTP transport. requests/models.py demonstrates the repository\u2019s existing bytes-to-native-text handling pattern.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for builtin_str, method normalization, request sending, and related compatibility helpers. Identify the most suspicious complete product-code file paths and explain the relevant locations.",
+      "output": "requests/sessions.py\n- **Line 16:** Imports `builtin_str` from the compatibility layer.\n- **Lines 378\u2013428:** `Session.request()` receives the HTTP method and converts it with `method = builtin_str(method)`. On Python 3, `builtin_str` is plain `str`, so `b'GET'` becomes `\"b'GET'\"` rather than `\"GET\"`.\n- **Lines 430\u2013443:** The normalized value is uppercased and placed into the `Request`.\n- **Lines 451\u2013457:** The prepared request is sent through `self.send()`.\n- **Lines 531\u2013569:** `Session.send()` selects an adapter and dispatches the prepared request.\n\nrequests/compat.py\n- **Lines 103\u2013114:** Defines Python 3 compatibility aliases, including `builtin_str = str`, `bytes = bytes`, and `basestring = (str, bytes)`. This explains why `builtin_str(b'GET')` produces the literal representation `\"b'GET'\"`.\n\nrequests/adapters.py\n- **Lines 315\u2013333:** `HTTPAdapter.send()` obtains the connection and prepares the request URL and headers.\n- **Lines 350\u2013363:** The non-chunked path passes `method=request.method` to `conn.urlopen()`.\n- **Lines 370\u2013375:** The chunked path passes `request.method` directly to `low_conn.putrequest()`. Thus the malformed `\"b'GET'\"` value reaches the HTTP transport here.\n\nrequests/utils.py\n- **Lines 655\u2013671:** Defines `to_native_string()`, which correctly decodes bytes on Python 3 using `string.decode(encoding)`. This is the relevant existing compatibility helper and contrasts with the unsafe `builtin_str()` conversion in `sessions.py`.\n\nrequests/models.py\n- **Lines 31\u201334:** Imports both compatibility aliases and `to_native_string`.\n- **Lines 338\u2013341:** Handles byte URLs explicitly, decoding them before storing the URL.\n- **Lines 407\u2013407:** Uses `to_native_string()` for header names, demonstrating the codebase\u2019s established bytes-to-native-text normalization pattern."
+    }
+  ]
+}

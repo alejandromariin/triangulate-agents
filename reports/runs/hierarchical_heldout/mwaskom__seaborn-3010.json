@@ -1,0 +1,30 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 16.9014707999886,
+  "prompt_tokens": 27961,
+  "completion_tokens": 477,
+  "cost_usd": 0.0061646,
+  "instance_id": "mwaskom__seaborn-3010",
+  "repo": "mwaskom/seaborn",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "seaborn/_stats/regression.py"
+  ],
+  "files": [
+    "seaborn/_stats/regression.py"
+  ],
+  "reasoning": "The traceback directly identifies seaborn/_stats/regression.py: PolyFit._fit_predict passes data containing None to np.polyfit, causing the LinAlgError. This is the primary product-code file responsible for handling polynomial regression and missing data.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search repository text for PolyFit, _fit_predict, regression stats, and missing-data handling relevant to fitting. Report the most suspicious product-code files and exact paths, excluding tests.",
+      "output": "seaborn/_stats/regression.py\nseaborn/objects.py\nseaborn/regression.py"
+    }
+  ]
+}

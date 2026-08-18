@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 16.365774200006854,
+  "prompt_tokens": 47270,
+  "completion_tokens": 306,
+  "cost_usd": 0.0098212,
+  "instance_id": "matplotlib__matplotlib-26011",
+  "repo": "matplotlib/matplotlib",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "lib/matplotlib/axis.py"
+  ],
+  "files": [
+    "lib/matplotlib/axis.py"
+  ],
+  "reasoning": "The shared-axis limit propagation and xlim_changed callback emission are implemented in Axis._set_lim() in lib/matplotlib/axis.py. The initiating axis emits the callback, but sibling axes are updated with emit=False, so their registered callbacks are skipped. This is the product-code location that must be changed to emit callbacks for shared-axis updates without recursively propagating the change.",
+  "stages": []
+}

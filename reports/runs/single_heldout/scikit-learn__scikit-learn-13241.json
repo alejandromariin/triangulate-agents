@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 17.15637300000526,
+  "prompt_tokens": 39949,
+  "completion_tokens": 275,
+  "cost_usd": 0.008319799999999999,
+  "instance_id": "scikit-learn__scikit-learn-13241",
+  "repo": "scikit-learn/scikit-learn",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sklearn/decomposition/kernel_pca.py"
+  ],
+  "files": [
+    "sklearn/decomposition/kernel_pca.py"
+  ],
+  "reasoning": "KernelPCA computes eigenvectors with either dense `linalg.eigh` or randomized ARPACK `eigsh` and directly uses their signs in `fit_transform` and `transform`. Unlike PCA, this product file does not apply deterministic eigenvector sign flipping after eigendecomposition, so repeated RBF KernelPCA runs can produce sign-different components. The fix belongs in `sklearn/decomposition/kernel_pca.py`.",
+  "stages": []
+}

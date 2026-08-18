@@ -1,0 +1,34 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 27.337086400017142,
+  "prompt_tokens": 56845,
+  "completion_tokens": 1186,
+  "cost_usd": 0.0127922,
+  "instance_id": "pylint-dev__pylint-7993",
+  "repo": "pylint-dev/pylint",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "pylint/reporters/text.py"
+  ],
+  "files": [
+    "pylint/reporters/text.py",
+    "pylint/lint/base_options.py"
+  ],
+  "reasoning": "The fault lives in pylint/reporters/text.py. Its on_set_current_module method uses a regular expression that treats the escaped literal braces in '{{ \"Category\": \"{category}\" }}' as an unrecognized formatting argument, then removes that text before write_message calls .format(**self_dict). The formatting call itself supports escaped braces; the preceding validation and cleanup logic causes the warning and truncated output. pylint/lint/base_options.py only declares command-line options and help text and does not parse or format msg-template, so it is an unlikely caller/configuration location rather than the origin.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `pylint/reporters/text.py` \u2014 **Most suspicious.** This file parses `--msg-template` using `re.findall(r\"\\{(.+?)(:.*)?\\}\", template)` and then removes anything it does not recognize as a message field. With the reported template, the escaped opening braces (`{{`) are interpreted as a field beginning with `{ \"Category\"`, which directly explains the warning and the output losing the dictionary prefix. I am unsure whether the intended fix should be a more robust formatter/parser or simply special handling for escaped braces, and whether format-specifier edge cases must remain compatible.\n\n2. `pylint/lint/base_options.py` \u2014 This defines the `msg-template` command-line option and explicitly describes it as a Python new-style format string, connecting it to the custom-brace syntax in the report. It does not perform template parsing or formatting itself, so it is unlikely to contain the defect; I am unsure whether its documentation should also specify how literal braces are supported."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `pylint/reporters/text.py` \u2014 **Strongest suspect.** Recent history shows the relevant template-validation and cleanup logic was introduced by commit `7c3533ca48` on 2021-11-24, only shortly before the reported regression. The affected lines are directly responsible:\n\n   - `re.findall(r\"\\{(.+?)(:.*)?\\}\", template)` does not distinguish escaped literal braces (`{{` and `}}`) from formatting fields.\n   - For `{{ \"Category\": \"{category}\" }}`, it interprets `{ \"Category\"` as an argument.\n   - The subsequent `re.sub` removes that text, producing the warning and truncated output described in the report.\n\n   The actual formatting call at line 196 uses Python\u2019s `.format(**self_dict)`, which correctly supports escaped braces; the bug is in the preceding custom parser and removal logic. This file should remain first.\n\n2. `pylint/lint/base_options.py` \u2014 **Unlikely suspect.** Its recent history includes commit `c2c2f51c3` on 2022-07-02, whose subject concerns explaining an escape-character limitation, but the file only declares command-line options and their help text. It does not parse or format `msg-template`. No relevant implementation responsible for the reported behavior was found here, so it should remain second and should not be promoted or dropped."
+    }
+  ]
+}

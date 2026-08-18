@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 12.390265099995304,
+  "prompt_tokens": 28851,
+  "completion_tokens": 217,
+  "cost_usd": 0.0060306000000000005,
+  "instance_id": "pydata__xarray-5131",
+  "repo": "pydata/xarray",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "xarray/core/groupby.py"
+  ],
+  "files": [
+    "xarray/core/groupby.py"
+  ],
+  "reasoning": "The trailing whitespace is directly produced by the GroupBy.__repr__ implementation in xarray/core/groupby.py at the format string `\"{}, grouped over {!r} \\n...\"`. Removing the space before the newline fixes DatasetGroupBy and other GroupBy representations because DatasetGroupBy inherits this implementation.",
+  "stages": []
+}

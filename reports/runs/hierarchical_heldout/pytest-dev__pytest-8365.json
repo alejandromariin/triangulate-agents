@@ -1,0 +1,35 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 33.20734530000482,
+  "prompt_tokens": 37016,
+  "completion_tokens": 1633,
+  "cost_usd": 0.009362800000000001,
+  "instance_id": "pytest-dev__pytest-8365",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/tmpdir.py"
+  ],
+  "files": [
+    "src/_pytest/tmpdir.py"
+  ],
+  "reasoning": "This file implements TempPathFactory and the shared temporary-directory behavior for tmpdir, tmpdir_factory, and tmp_path_factory. It calls getpass.getuser() and constructs the username-based `pytest-of-{user}` basetemp path; an unsanitized username containing a backslash becomes an invalid or unintended Windows path. The investigators found no other product-code file constructing this path.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for getpass.getuser, tmpdir_factory, tmp_path_factory, basetemp, and pytest-of path construction. Identify the most likely product-code files that implement this behavior. Return exact repository-relative paths and briefly explain each.",
+      "output": "src/_pytest/tmpdir.py \u2014 Implements pytest\u2019s temporary-directory behavior for `tmpdir`, `tmpdir_factory`, and `tmp_path_factory`. `TempPathFactory.getbasetemp()` obtains the username via `getpass.getuser()` and constructs the path `pytest-of-{user}` before creating it:\n\n- `get_user()` wraps `getpass.getuser()`.\n- `TempPathFactory.getbasetemp()` constructs `temproot / f\"pytest-of-{user}\"`.\n- `TempPathFactory` provides the shared implementation used by both `tmp_path_factory` and the backward-compatible `tmpdir_factory`.\n- The `tmpdir` fixture ultimately uses the same factory-created base temporary directory.\n\nNo other product-code file directly constructs the username-based `pytest-of-{user}` path."
+    },
+    {
+      "role": "History investigator",
+      "asked": "Inspect recent commit history relevant to temporary directory handling, getpass.getuser, TempPathFactory, and basetemp. Identify exact product-code paths touched or likely implicated, and explain whether history points to a focused file or related compatibility code.",
+      "output": "The focused product-code file is:\n\n- `src/_pytest/tmpdir.py`\n\nThe bug is directly in `TempPathFactory.getbasetemp()`:\n\n```python\nuser = get_user() or \"unknown\"\nrootdir = temproot.joinpath(f\"pytest-of-{user}\")\nrootdir.mkdir(exist_ok=True)\n```\n\n`get_user()` calls `getpass.getuser()` and returns its value unchanged. If that value is `contoso\\john_doe`, the formatted directory becomes `pytest-of-contoso\\john_doe`; on Windows, the backslash is interpreted as a path separator, so the intended single directory name is invalid or causes an unexpected nested path. This path is shared by `tmp_path_factory`, while `TempdirFactory` delegates to it for `tmpdir_factory`, and the `tmpdir` fixture ultimately uses the same factory.\n\nHistory strongly points to `src/_pytest/tmpdir.py`, rather than a broad compatibility layer:\n\n- The current `rootdir` construction was introduced by commit `97d8e9fbec` on 2019-05-28, which added the user-specific `pytest-of-{user}` directory and the surrounding basetemp setup.\n- The `get_user()` helper is also in this file and is old compatibility code dating back to 2015. Its history only handles environments where `getpass.getuser()` raises `ImportError` or `KeyError`; it does not sanitize a successfully returned username.\n- The most recent relevant change to the exact `rootdir` line is commit `66bd44c13a` on 2020-10-02, \u201cpy36+: pyupgrade: py36+\u201d. That change only modernized the formatting to an f-string; it did not alter the path-safety behavior.\n- Recent commits touching `src/_pytest/tmpdir.py` are mostly typing, documentation, import-cycle, and compatibility cleanups. No recent commit indicates that `src/_pytest/pathlib.py`, `src/_pytest/compat.py`, or fixture plumbing is responsible for constructing the user-derived directory.\n\nRelated product-code files are therefore not primary suspects:\n\n- `src/_pytest/pathlib.py` contains generic directory creation and cleanup helpers such as `make_numbered_dir_with_cleanup`, but it receives `root=rootdir` after the unsafe username-derived path has already been built. Its recent history concerns cleanup, symlinks, path length, and pathlib behavior\u2014not username normalization.\n- `src/_pytest/compat.py` is unrelated to `getpass.getuser()` or basetemp construction.\n- `src/_pytest/fixtures.py` exposes the fixtures and has recent fixture/setup changes, but it does not construct the basetemp path.\n\nConclusion: the likely fix should be concentrated in `src/_pytest/tmpdir.py`, probably around `get_user()` or the `rootdir = temproot.joinpath(...)` construction. The compatibility aspect is local to the existing `get_user()` helper, but history does not point to a separate compatibility module needing modification."
+    }
+  ]
+}

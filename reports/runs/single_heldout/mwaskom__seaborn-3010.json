@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 12.446694599988405,
+  "prompt_tokens": 22145,
+  "completion_tokens": 229,
+  "cost_usd": 0.0047038,
+  "instance_id": "mwaskom__seaborn-3010",
+  "repo": "mwaskom/seaborn",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "seaborn/_stats/regression.py"
+  ],
+  "files": [
+    "seaborn/_stats/regression.py"
+  ],
+  "reasoning": "The traceback identifies PolyFit._fit_predict in seaborn/_stats/regression.py as the failing product code. It passes x and y directly to np.polyfit without removing rows containing missing values, causing the reported LinAlgError; this file is therefore the source that must be modified.",
+  "stages": []
+}

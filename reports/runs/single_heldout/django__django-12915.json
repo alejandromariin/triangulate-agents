@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 17.53586569998879,
+  "prompt_tokens": 34519,
+  "completion_tokens": 308,
+  "cost_usd": 0.0072734,
+  "instance_id": "django__django-12915",
+  "repo": "django/django",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "django/contrib/staticfiles/handlers.py"
+  ],
+  "files": [
+    "django/contrib/staticfiles/handlers.py"
+  ],
+  "reasoning": "ASGIStaticFilesHandler inherits StaticFilesHandlerMixin before ASGIHandler. The mixin defines only synchronous get_response(), which overrides the async handler\u2019s inherited get_response_async lookup with no callable implementation because load_middleware() is a no-op. Adding get_response_async() alongside get_response() in django/contrib/staticfiles/handlers.py will provide the async static-file response path and catch Http404 consistently.",
+  "stages": []
+}

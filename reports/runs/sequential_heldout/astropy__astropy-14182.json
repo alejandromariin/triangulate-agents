@@ -1,0 +1,35 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 35.680014799989294,
+  "prompt_tokens": 92313,
+  "completion_tokens": 1486,
+  "cost_usd": 0.0202458,
+  "instance_id": "astropy__astropy-14182",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "astropy/io/ascii/rst.py"
+  ],
+  "files": [
+    "astropy/io/ascii/rst.py",
+    "astropy/io/ascii/fixedwidth.py",
+    "astropy/io/ascii/core.py"
+  ],
+  "reasoning": "The fault is primarily in astropy/io/ascii/rst.py: RST.__init__ accepts no header_rows argument and therefore fails when the generic writer dispatch passes that keyword. Its write() method also relies on fixed line positions, so it may need adjustment for additional header rows. astropy/io/ascii/fixedwidth.py already implements header_rows support and is the reusable base that RST should forward to. astropy/io/ascii/core.py only dispatches writer keywords and appears correct; it exposes the incompatibility rather than originating the bug.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `astropy/io/ascii/rst.py` \u2014 Most suspicious. It defines `RST`, whose constructor accepts no arguments and calls `FixedWidth.__init__` without forwarding `header_rows`, directly explaining `TypeError: RST.__init__() got an unexpected keyword argument 'header_rows'`; I am unsure whether the intended fix belongs here alone or also requires adapting the RST-specific line-generation logic.\n\n2. `astropy/io/ascii/fixedwidth.py` \u2014 The shared implementation already supports `header_rows`: `FixedWidth.__init__` stores it on both header and data objects, and `FixedWidthData.write()` emits each requested metadata row before the position separator and data. This is the likely reusable mechanism for RST; I am unsure whether RST\u2019s custom `position_line`, `start_line`, and added separator lines require special handling beyond forwarding the argument.\n\n3. `astropy/io/ascii/core.py` \u2014 `_get_writer()` filters only common writer keywords and passes `header_rows` through to the writer constructor, which exposes the RST constructor incompatibility. I am unsure whether this generic dispatch code needs any change, since fixed-width writers already receive and process the argument correctly."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `astropy/io/ascii/rst.py` \u2014 Strongest candidate. Its history shows the file\u2019s implementation has been essentially unchanged since the original RST support commit in 2016; only formatting/import maintenance occurred recently. The current `RST.__init__` accepts no parameters and calls `FixedWidth.__init__` without `header_rows`, directly causing the reported `TypeError`. Its custom `write()` method also assumes `lines[1]` is the separator, so the RST-specific wrapping logic should be checked after forwarding `header_rows`; however, the history and code indicate this is the primary fix location.\n\n2. `astropy/io/ascii/fixedwidth.py` \u2014 Recent and highly relevant history. Commits `d9dd991f7c` and `27da8f4e94` added and refactored support for extra `header_rows` in September 2022, shortly before the report. The shared `FixedWidthData.write()` now emits requested metadata rows, computes widths including them, and inserts the position separator afterward. `FixedWidth.__init__` stores `header_rows` on both header and data objects. This confirms the reusable implementation already exists and strongly suggests `RST` should pass `header_rows` through rather than duplicate logic. The RST-specific fixed line positions (`SimpleRSTHeader.position_line = 0`, `SimpleRSTData.start_line = 3`) may require adjustment or validation for multiple header rows.\n\n3. `astropy/io/ascii/core.py` \u2014 Lower-priority candidate. Recent history contains only general maintenance/refactoring and no change related to header rows or RST. `_get_writer()` intentionally passes non-common keywords such as `header_rows` to the writer constructor, which is why the incompatible RST constructor receives it. Since `fixed_width` already works through this dispatch path, the generic writer machinery does not appear to need modification."
+    }
+  ]
+}

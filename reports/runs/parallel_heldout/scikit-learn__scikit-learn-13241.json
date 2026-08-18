@@ -1,0 +1,38 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 23.810526100045536,
+  "prompt_tokens": 89466,
+  "completion_tokens": 1933,
+  "cost_usd": 0.0202128,
+  "instance_id": "scikit-learn__scikit-learn-13241",
+  "repo": "scikit-learn/scikit-learn",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sklearn/decomposition/kernel_pca.py"
+  ],
+  "files": [
+    "sklearn/decomposition/kernel_pca.py",
+    "sklearn/metrics/pairwise.py"
+  ],
+  "reasoning": "sklearn/decomposition/kernel_pca.py is the primary suspect, supported independently by all three investigations. The reported configuration selects the ARPACK eigensolver, whose randomly initialized eigenvectors have inherently ambiguous signs; the transformed output is computed directly from those eigenvectors, explaining identical magnitudes with independently flipped component signs. sklearn/metrics/pairwise.py is a lower-confidence secondary file because it supplies the RBF kernel, but the matching values with only sign changes indicate the issue occurs downstream during eigendecomposition rather than in kernel computation.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `sklearn/decomposition/kernel_pca.py` \u2014 **Most suspicious; high confidence.** This is the product implementation of `KernelPCA`, including the reported `rbf`, `copy_X`, `n_jobs`, and `n_components` parameters. Its automatic solver selects ARPACK for datasets with more than 200 samples and fewer than 10 components (lines 192\u2013196), matching the reproduction with 7 components. The ARPACK path uses an initial random vector (`random_state.uniform(-1, 1, K.shape[0])`, lines 204\u2013211), and eigenvectors are inherently sign-ambiguous, so repeated runs can legitimately return components with opposite signs. I am unsure whether the intended fix is to make ARPACK deterministic by default, explicitly stabilize eigenvector signs, or only document that KernelPCA outputs are equivalent up to component-wise sign; the file itself contains no sign-normalization step.\n\n2. `sklearn/decomposition/__init__.py` \u2014 **Low confidence.** This product module exports `KernelPCA`, confirming the public entry point involved in the report. It contains no fitting, eigensolver, or sign-handling logic, so it is unlikely to be the faulty implementation.\n\n3. `sklearn/manifold/isomap.py` \u2014 **Low confidence.** This product module constructs and uses `KernelPCA` internally for Isomap, connecting it indirectly to the same estimator. The reported direct `KernelPCA(...).fit_transform(X)` behavior is implemented elsewhere, and this file does not appear responsible for eigenvector signs.\n\n4. `sklearn/metrics/pairwise.py` \u2014 **Low confidence.** This product module supplies the RBF kernel calculation used by `KernelPCA` through `pairwise_kernels`. It connects to the `kernel='rbf'` term, but sign differences arise after the kernel matrix is formed during eigendecomposition; I found no indication here that the kernel computation changes component signs."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `sklearn/decomposition/kernel_pca.py` \u2014 **High confidence**\n\n   This is the primary suspect. Its recent history is sparse, with the latest product-code change being the API estimator-tags update on 2019-02-23, but the relevant implementation is clearly here.\n\n   The reported configuration (`n_components=7`, `kernel='rbf'`, `n_jobs=-1`) selects the ARPACK eigensolver whenever the centered kernel has more than 200 samples:\n\n   ```python\n   if self.eigen_solver == 'auto':\n       if K.shape[0] > 200 and n_components < 10:\n           eigen_solver = 'arpack'\n   ```\n\n   ARPACK is initialized with a random vector when `random_state=None`:\n\n   ```python\n   random_state = check_random_state(self.random_state)\n   v0 = random_state.uniform(-1, 1, K.shape[0])\n   self.lambdas_, self.alphas_ = eigsh(...)\n   ```\n\n   The eigenvectors returned by an eigensolver are only defined up to sign, so different ARPACK initializations can produce identical components with independently flipped signs. The affected lines are historically old: blame attributes them to the original KernelPCA implementation or the 2015 addition of the randomized ARPACK initialization, not to a recent regression. Nevertheless, this file directly contains the behavior described by the report.\n\n2. `sklearn/metrics/pairwise.py` \u2014 **Low confidence**\n\n   This file supplies the RBF kernel through `pairwise_kernels` and has several recent maintenance and bug-fix commits, including changes through 2019-02-08. However, its recent history concerns pairwise distances, metrics, and joblib/API maintenance rather than eigenvector computation or sign conventions.\n\n   The kernel computation could affect numerical reproducibility, but it does not explain the exact result pattern: equal magnitudes with independently flipped component signs. The sign ambiguity originates downstream in the eigensolver used by `sklearn/decomposition/kernel_pca.py`.\n\n3. `sklearn/utils/extmath.py` \u2014 **Very low confidence**\n\n   This directory contains numerical utility code and has recent history, including float-precision and cleanup changes. Its history does not point to KernelPCA or eigendecomposition behavior, and the reported symptom is already explained by the ARPACK path in `sklearn/decomposition/kernel_pca.py`.\n\n   No additional product-code file is supported strongly enough by the history to add ahead of the KernelPCA implementation."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "1. **sklearn/decomposition/kernel_pca.py** \u2014 **High confidence**  \n   The fault lives here. With `n_components=7`, datasets larger than 200 samples, and `eigen_solver='auto'`, `KernelPCA` selects the ARPACK eigensolver (lines 192\u2013195). ARPACK returns eigenvectors whose signs are not uniquely determined and may vary between runs. Since the transformed output is computed directly from these eigenvectors (lines 207\u2013216 and 278\u2013283), each component can independently appear with the opposite sign. The use of `n_jobs=-1` is not itself the cause; the nondeterminism originates from the ARPACK path and its unconstrained eigenvector orientation. `random_state` is available to stabilize the solver\u2019s initialization, but even mathematically equivalent eigenvectors can differ by sign.  \n\n2. **sklearn/metrics/pairwise.py** \u2014 **Low confidence**  \n   This module is called by `sklearn/decomposition/kernel_pca.py` to construct the RBF kernel, but the reported outputs are otherwise identical except for component signs. That pattern indicates the kernel matrix is correct and the issue occurs during eigendecomposition, not kernel computation."
+    }
+  ]
+}

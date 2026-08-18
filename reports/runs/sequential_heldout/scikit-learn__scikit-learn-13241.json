@@ -1,0 +1,33 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 34.215654900006484,
+  "prompt_tokens": 63074,
+  "completion_tokens": 947,
+  "cost_usd": 0.0137512,
+  "instance_id": "scikit-learn__scikit-learn-13241",
+  "repo": "scikit-learn/scikit-learn",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sklearn/decomposition/kernel_pca.py"
+  ],
+  "files": [
+    "sklearn/decomposition/kernel_pca.py"
+  ],
+  "reasoning": "This is the direct product-code location of the reported behavior. In _fit_transform, eigen_solver='auto' selects ARPACK for datasets with more than 200 samples and fewer than 10 components (lines 192-196). ARPACK receives a random initial vector (lines 203-211), and its eigenvectors have arbitrary signs; the transformed output directly uses those eigenvectors without sign normalization (lines 278-283).",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "- `sklearn/decomposition/kernel_pca.py` \u2014 Most suspicious: this is the product implementation of `KernelPCA`, and the reported configuration (`kernel='rbf'`, `n_components=7`, `n_jobs=-1`, `copy_X=False`) is handled here. With datasets larger than 200 samples, `eigen_solver='auto'` selects ARPACK for fewer than 10 components (lines 192\u2013196); ARPACK is initialized from a random vector (lines 204\u2013211), and eigenvectors are inherently sign-indeterminate, directly connecting to equivalent results differing only by signs. I am unsure whether the report expects deterministic signs or whether the underlying issue is nondeterministic ARPACK eigenvector orientation; this file does not apply a sign-normalization step."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `sklearn/decomposition/kernel_pca.py` \u2014 **Strongest candidate.** The implementation directly contains the reported behavior. For datasets with more than 200 samples and fewer than 10 requested components, `eigen_solver='auto'` selects ARPACK. ARPACK is initialized with a random vector derived from `random_state`, and its returned eigenvectors have arbitrary sign. The transformed output is computed directly from those eigenvectors, with no sign normalization. The relevant ARPACK initialization and eigensolver logic are old rather than recently introduced: the selection logic dates to 2011, while the random initialization was last changed in 2015. Recent history contains only API and documentation maintenance, so history does not identify a recent regression, but this remains the clear product-code location for the bug.\n\nNo other product-code candidate is supported by the repository history."
+    }
+  ]
+}

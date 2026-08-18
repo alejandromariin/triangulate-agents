@@ -1,0 +1,36 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 32.6109077000292,
+  "prompt_tokens": 79061,
+  "completion_tokens": 1564,
+  "cost_usd": 0.017689,
+  "instance_id": "matplotlib__matplotlib-26011",
+  "repo": "matplotlib/matplotlib",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "lib/matplotlib/axis.py"
+  ],
+  "files": [
+    "lib/matplotlib/axis.py",
+    "lib/matplotlib/axes/_base.py"
+  ],
+  "reasoning": "The shared-axis limit propagation and xlim_changed callback emission are implemented in lib/matplotlib/axis.py, where Axis._set_lim() updates sibling axes with emit=False, suppressing their callbacks. lib/matplotlib/axes/_base.py contains the related public Axes limit-setting and shared-axis pathway described in the report.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for the shared-axis xlim_changed callback implementation and related limit-change propagation code. Report the exact complete paths of the most relevant product files, and briefly explain why each is implicated. Do not include tests.",
+      "output": "- `lib/matplotlib/axes/_base.py` \u2014 Contains the shared-axis setup and the public `Axes.sharex()`/`set_xlim()` pathway identified in the report. It manages `_shared_axes[\"x\"]`, joins sibling axes, and invokes limit-setting with `emit=False` during propagation.\n\n- `lib/matplotlib/axis.py` \u2014 Contains the shared limit-change implementation in `Axis._set_lim()`. It emits the originating axes\u2019 `xlim_changed` callback at lines 1240\u20131241, then propagates limits to sibling axes at lines 1242\u20131246 with `emit=False`, which directly explains why sibling callbacks are not emitted."
+    },
+    {
+      "role": "History investigator",
+      "asked": "Inspect recent commit history relevant to shared axes, xlim_changed, Axis._set_lim, and emit=False propagation. Identify which product files were changed or intended to change for this bug/regression, with exact paths and concise evidence. Do not include tests.",
+      "output": "Product files implicated by the history and current implementation:\n\n- **`lib/matplotlib/axis.py`**\n  - This is the primary file for the regression.\n  - `Axis._set_lim()` is defined here (line 1179; last substantial origin attributed by blame to commit `346b516b75b`, 2021-10-23, with later changes in `abd1f1a13ba`, 2022-02-05).\n  - It emits the initiating axes\u2019 callback at lines 1240\u20131241:\n    ```python\n    if emit:\n        self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n    ```\n  - It propagates limits to shared siblings at lines 1242\u20131246 while explicitly suppressing emission:\n    ```python\n    for other in self._get_shared_axes():\n        if other is not self.axes:\n            other._axis_map[name]._set_lim(\n                v0, v1, emit=False, auto=auto)\n    ```\n  - Therefore, sibling axes update their limits but do not receive their own `xlim_changed` callback. This is the direct product-code location to change for the reported behavior.\n\n- **`lib/matplotlib/axes/_base.py`**\n  - This is the public `Axes` implementation and contains the `set_xlim`/`set_ylim` API that delegates limit-setting to the axis machinery.\n  - Its recent history includes commit `811c2a408b` (2023-07-21, \u201cMerge pull request #16473 \u2026 generalize-xy\u201d), but the current shared-limit propagation shown by the report is implemented in `Axis._set_lim`, not in this file.\n  - No corresponding current product-code range in `_base.py` is responsible for the `emit=False` sibling propagation. It is relevant context, but it should not be the primary change target unless the intended fix deliberately changes the delegation contract.\n\n**Conclusion:** The product file that directly needs modification is:\n\n```text\nlib/matplotlib/axis.py\n```\n\n`lib/matplotlib/axes/_base.py` is the related public API/delegation file, but the callback suppression and shared-axis propagation causing the bug are concretely in `lib/matplotlib/axis.py`."
+    }
+  ]
+}

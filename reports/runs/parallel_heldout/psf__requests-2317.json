@@ -1,0 +1,41 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 5,
+  "bare_names": 0,
+  "seconds": 26.415918299986515,
+  "prompt_tokens": 106684,
+  "completion_tokens": 2602,
+  "cost_usd": 0.024459200000000004,
+  "instance_id": "psf__requests-2317",
+  "repo": "psf/requests",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "requests/sessions.py"
+  ],
+  "files": [
+    "requests/models.py",
+    "requests/sessions.py",
+    "requests/compat.py",
+    "requests/adapters.py",
+    "requests/api.py"
+  ],
+  "reasoning": "requests/models.py is the strongest suspect: PreparedRequest.prepare_method() normalizes the method without decoding Python 3 bytes, while nearby URL handling demonstrates the missing compatibility behavior. requests/sessions.py is the reported location and propagates the method, including during redirects, but the cited builtin_str() line is absent in the investigated revision. requests/compat.py defines builtin_str and explains why str(b'GET') becomes \"b'GET'\", though it is supporting infrastructure rather than the clear fault. requests/adapters.py is a downstream transport boundary that passes the malformed method onward. requests/api.py only forwards the caller-provided method and is a low-confidence entry-point candidate.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `requests/sessions.py` \u2014 **Most suspicious; high confidence.**  \n   This is the exact product-code location named in the report: `Session.request()` executes `method = builtin_str(method)` before uppercasing and constructing the request. On Python 3, `builtin_str` is `str`, so a byte method such as `b'GET'` becomes the literal string `\"b'GET'\"`, which is then passed onward as the HTTP method. I am unsure whether the intended fix belongs here or in the caller that incorrectly byte-encodes the method.\n\n2. `requests/compat.py` \u2014 **Directly connected; high confidence.**  \n   This file defines the cross-version alias used by the failing command. On Python 2, `builtin_str = str` converts to a byte string, while on Python 3, `builtin_str = str`; therefore `str(b'GET')` produces the problematic `\"b'GET'\"` representation. I am unsure whether changing this shared compatibility alias would affect its other uses, especially numeric/header conversions.\n\n3. `requests/models.py` \u2014 **Relevant downstream candidate; medium confidence.**  \n   `PreparedRequest.prepare_method()` stores the supplied method and calls `.upper()`, while `Session.request()` supplies the already-converted value. This confirms that the malformed `\"b'GET'\"` string is retained as the request method rather than decoded back to bytes. I am unsure whether this method-preparation layer should independently decode byte methods or rely on `Session.request()` to normalize them.\n\n4. `requests/adapters.py` \u2014 **Affected transport boundary; medium confidence.**  \n   The adapter passes `request.method` directly to urllib3 as `method=request.method`, and in the chunked path passes it to `putrequest()`. This is where the malformed method can reach the HTTP client/server and result in a 404. I am unsure whether the adapter should normalize the method or whether it is already too late in the request pipeline."
+    },
+    {
+      "role": "History investigator",
+      "output": "requests/models.py \u2014 **Highest confidence**\n\n- The bug report points to `requests/sessions.py`, but the current repository contains no `method = builtin_str(method)` command there.\n- The actual method normalization is in `requests/models.py:328-332`, where `PreparedRequest.prepare_method()` assigns the value and calls `.upper()` without decoding Python 3 `bytes`.\n- History shows this method code is old (`8c01865d6`, 2012-12-17), so it is not a recent regression.\n- However, the same file was recently changed by `a68d1b451` on 2014-09-29 to specifically handle Python 3 byte strings for URLs. That commit\u2019s comment says blindly converting bytes with `str()` produces the `b''` representation\u2014the exact Python 3 issue in the report. The fix was applied only to URLs, not methods.\n- The nearby recent URL compatibility change makes this the strongest product-code suspect: method bytes likely need analogous decoding before uppercasing.\n- **Confidence: High.**\n\nrequests/sessions.py \u2014 **Medium confidence**\n\n- This is the file named in the report and it does contain method handling during redirects at lines 117 and 142-156.\n- Its recent history includes several commits in September\u2013October 2014, including `27c83f71` (\u201cFix #2207\u201d), `8ed941fa` (\u201cFix a couple of issues I noticed\u201d), and `0e4efab2` (\u201cRe-order params for backwards compat\u201d).\n- The current redirect code assigns `prepared_request.method = method` without any byte-to-text normalization. If a request method reaches redirect handling as bytes, comparisons such as `method != 'HEAD'` and `method == 'POST'` can also behave incorrectly.\n- Nevertheless, the reported `builtin_str()` line is not present in this file at the investigated revision, and the initial request path is handled by `requests/models.py`, making this a secondary suspect.\n- **Confidence: Medium.**\n\nrequests/utils.py \u2014 **Low confidence**\n\n- This file has recent activity through October 2014, including commits `8339b60f`, `ce1ac885`, `4594667f`, and `6e1db217`.\n- Its role includes string and encoding helpers, so it is nearby conceptually, but the reported failure is caused by converting a bytes method to its textual representation rather than decoding it.\n- No evidence from the inspected history identifies a recent method-specific change here.\n- **Confidence: Low.**\n\nrequests/adapters.py \u2014 **Very low confidence**\n\n- The adapter has recent changes, notably `6e1db217` (\u201cfix #2247\u201d) and timeout/error-handling work.\n- Its responsibilities begin after request preparation and do not contain the method normalization shown in the report.\n- No history evidence connects this file to Python 3 method conversion.\n- **Confidence: Very low.**\n\nrequests/compat.py \u2014 **Very low confidence**\n\n- This file defines compatibility symbols including `builtin_str`, and its history includes Python compatibility work.\n- However, it has not changed recently relative to the report, and the inspected evidence does not indicate that the compatibility definition itself is faulty.\n- The stronger explanation is that product code is applying a string conversion in the wrong place or failing to decode a bytes method before normalization.\n- **Confidence: Very low.**"
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "requests/models.py \u2014 **Primary fault location; high confidence.** `PreparedRequest.prepare_method()` calls `.upper()` but does not decode `bytes` first. On Python 3, `b'GET'.upper()` remains bytes, allowing the binary method to propagate into the request. The nearby URL preparation code explicitly decodes bytes, demonstrating the missing equivalent handling for methods.\n\nrequests/sessions.py \u2014 **Secondary manifestation/caller; medium confidence.** This module passes the supplied method into `Request(method=method.upper(), ...)` and later assigns it to prepared requests during redirects. It exposes the problem but does not originate the bytes-to-string conversion described in the report.\n\nrequests/compat.py \u2014 **Supporting dependency; low confidence.** It defines Python 3 compatibility aliases, including `builtin_str = str`, but contains no method normalization. Its Python 3 distinction explains why `str(b'GET')` would produce `\"b'GET'\"`, yet the actual faulty method path is in request preparation.\n\nrequests/api.py \u2014 **Entry-point caller; low confidence.** It forwards the caller-provided method unchanged to `Session.request()` and does not perform the conversion or method validation."
+    }
+  ]
+}

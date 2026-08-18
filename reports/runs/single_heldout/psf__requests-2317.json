@@ -1,0 +1,26 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 16.226196999952663,
+  "prompt_tokens": 33469,
+  "completion_tokens": 341,
+  "cost_usd": 0.007103,
+  "instance_id": "psf__requests-2317",
+  "repo": "psf/requests",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "requests/sessions.py"
+  ],
+  "files": [
+    "requests/sessions.py",
+    "requests/models.py",
+    "requests/compat.py"
+  ],
+  "reasoning": "The reported conversion occurs directly in requests/sessions.py at `method = builtin_str(method)`, where Python 3's `str(bytes_value)` produces the literal `\"b'GET'\"`. The resulting method is uppercased and passed into Request, while requests/models.py contains the subsequent method preparation logic and is the appropriate product-code location to normalize byte-valued methods correctly. requests/compat.py defines the Python-version-specific `builtin_str` behavior that causes the Python 3 discrepancy.",
+  "stages": []
+}

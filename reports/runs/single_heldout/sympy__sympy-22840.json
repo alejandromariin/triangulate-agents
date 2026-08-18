@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 23.64857389999088,
+  "prompt_tokens": 99608,
+  "completion_tokens": 467,
+  "cost_usd": 0.020482000000000004,
+  "instance_id": "sympy__sympy-22840",
+  "repo": "sympy/sympy",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sympy/simplify/cse_main.py"
+  ],
+  "files": [
+    "sympy/simplify/cse_main.py",
+    "sympy/matrices/expressions/matexpr.py"
+  ],
+  "reasoning": "The bug is centered in CSE's handling of repeated MatrixExpr objects and their indexed MatrixElement arguments. `sympy/simplify/cse_main.py` explicitly converts eliminated MatrixExpr instances into MatrixSymbols, then rebuilds expressions and recursively processes their arguments, producing replacements such as `(x0, a)` followed by replacements for `x0[i, j]`. The indexed representation and construction of those elements are implemented in `sympy/matrices/expressions/matexpr.py`, where MatrixExpr indexing creates MatrixElement objects and MatrixElement is marked as a symbol; this interaction is directly responsible for the unexpected indexing substitutions.",
+  "stages": []
+}

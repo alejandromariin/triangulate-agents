@@ -1,0 +1,31 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 17.29876159998821,
+  "prompt_tokens": 35064,
+  "completion_tokens": 1067,
+  "cost_usd": 0.0082932,
+  "instance_id": "pallets__flask-4992",
+  "repo": "pallets/flask",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "src/flask/config.py"
+  ],
+  "files": [
+    "src/flask/config.py",
+    "docs/config.rst"
+  ],
+  "reasoning": "The implementation of Config.from_file and its text-mode open call are in src/flask/config.py. The user-facing examples and API documentation for loading TOML and JSON configuration files are in docs/config.rst and should reflect the new mode parameter.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for the implementation of flask.Config.from_file, its class/module, and any related file-opening logic or API documentation in product code. Report exact complete repository-relative paths and relevant symbols.",
+      "output": "src/flask/config.py\n\n- `class Config` at line 29.\n- `Config.from_file` at line 232.\n- Current signature:\n  ```python\n  def from_file(\n      self,\n      filename: str,\n      load: t.Callable[[t.IO[t.Any]], t.Mapping],\n      silent: bool = False,\n  ) -> bool:\n  ```\n- Related file-opening logic at lines 261\u2013265:\n  ```python\n  filename = os.path.join(self.root_path, filename)\n\n  try:\n      with open(filename) as f:\n          obj = load(f)\n  ```\n  This is the product code that currently opens the file in text mode and needs the new `mode` parameter.\n\n- The method\u2019s API documentation and examples are in its docstring at lines 238\u2013260, including:\n  ```python\n  app.config.from_file(\"config.json\", load=json.load)\n  app.config.from_file(\"config.toml\", load=toml.load)\n  ```\n  and the documented parameters `filename`, `load`, and `silent`.\n\ndocs/config.rst\n\n- `Config.from_file` API usage documentation at lines 404\u2013421:\n  ```rst\n  Configuring from Data Files\n  ---------------------------\n\n  It is also possible to load configuration from a file in a format of\n  your choice using :meth:`~flask.Config.from_file`. For example to load\n  from a TOML file:\n\n  .. code-block:: python\n\n      import toml\n      app.config.from_file(\"config.toml\", load=toml.load)\n\n  Or from a JSON file:\n\n  .. code-block:: python\n\n      import json\n      app.config.from_file(\"config.json\", load=json.load)\n  ```\n\nsrc/flask/app.py\n\n- `Flask.__init__` assigns the configuration object at lines 401\u2013404:\n  ```python\n  #: The configuration dictionary as :class:`Config`.  This behaves\n  #: exactly like a regular dictionary but supports additional methods\n  #: to load a config from files.\n  self.config = self.make_config(instance_relative_config)\n  ```\n- No separate `from_file` implementation is present here.\n\nCHANGES.rst\n\n- Historical product documentation at lines 381\u2013383:\n  ```rst\n  -   Add ``Config.from_file`` to load config using arbitrary file\n      loaders, such as ``toml.load`` or ``json.load``.\n      ``Config.from_json`` is deprecated in favor of this. :pr:`3398`\n  ```\n- Deprecation reference at lines 224\u2013227:\n  ```rst\n  -   ``config.from_json`` is replaced by\n      ``config.from_file(name, load=json.load)``.\n  ```\n\nThe primary product file to change is:\n\n```text\nsrc/flask/config.py\n```\n\nThe related API documentation file is:\n\n```text\ndocs/config.rst\n```"
+    }
+  ]
+}

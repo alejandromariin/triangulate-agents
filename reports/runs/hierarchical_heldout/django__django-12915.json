@@ -1,0 +1,35 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 29.540014199970756,
+  "prompt_tokens": 29947,
+  "completion_tokens": 1888,
+  "cost_usd": 0.008255,
+  "instance_id": "django__django-12915",
+  "repo": "django/django",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "django/contrib/staticfiles/handlers.py"
+  ],
+  "files": [
+    "django/contrib/staticfiles/handlers.py"
+  ],
+  "reasoning": "The ASGIStaticFilesHandler inherits StaticFilesHandlerMixin before ASGIHandler, but the mixin defines only synchronous get_response(). Its missing get_response_async() causes the ASGI call path to reach a non-callable response handler. The ASGI and base handler files contain the generic call and implementation but do not need modification; history identifies django/contrib/staticfiles/handlers.py as the single product file for the fix.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for StaticFilesHandlerMixin, ASGIStaticFilesHandler, get_response_async, and related handler definitions/usages. Report exact complete repository-relative product file paths and relevant findings. Do not include tests.",
+      "output": "django/contrib/staticfiles/handlers.py\n- Defines `StaticFilesHandlerMixin` at line 13.\n- Provides the synchronous `get_response()` at lines 49\u201354:\n  ```python\n  def get_response(self, request):\n      try:\n          return self.serve(request)\n      except Http404 as e:\n          return response_for_exception(request, e)\n  ```\n- Defines `StaticFilesHandler(StaticFilesHandlerMixin, WSGIHandler)` at line 56.\n- Defines `ASGIStaticFilesHandler(StaticFilesHandlerMixin, ASGIHandler)` at line 72.\n- `ASGIStaticFilesHandler.__call__()` delegates static-file requests to `super().__call__()` at lines 81\u201386.\n- The mixin has no `get_response_async()` definition. Because the mixin precedes `ASGIHandler` in the MRO, the ASGI handler resolves `get_response_async()` from the inherited `BaseHandler` implementation rather than an async static-file-specific method. The relevant missing product change is therefore in this file: add an async counterpart to the mixin\u2019s `get_response()` that serves the file through the synchronous `serve()` path and catches `Http404` consistently.\n\ndjango/core/handlers/asgi.py\n- Defines `ASGIHandler` and its async entrypoint at lines 136\u2013168.\n- At line 161, `__call__()` executes:\n  ```python\n  response = await self.get_response_async(request)\n  ```\n- This is the downstream call site reached by `ASGIStaticFilesHandler.__call__()`. It expects the inherited handler\u2019s `get_response_async()` to return an `HttpResponse`.\n\ndjango/core/handlers/base.py\n- Defines `BaseHandler.get_response()` at lines 124\u2013136.\n- Defines `BaseHandler.get_response_async()` at lines 138\u2013156:\n  ```python\n  async def get_response_async(self, request):\n      ...\n      response = await self._middleware_chain(request)\n      ...\n      return response\n  ```\n- This is the generic async response path inherited by `ASGIHandler`. It is not the static-files-specific implementation and is not the primary file requiring the bug fix."
+    },
+    {
+      "role": "History investigator",
+      "asked": "Inspect recent repository history for changes or analogous fixes involving StaticFilesHandlerMixin, ASGIStaticFilesHandler, get_response_async, or django/contrib/staticfiles/handlers.py. Report exact repository-relative product paths implicated and whether only handlers.py should change. Exclude tests.",
+      "output": "The history points to a single product-file fix:\n\n- **`django/contrib/staticfiles/handlers.py`**\n  - `a415ce70be` (`2019-04-12`, \u201cFixed #30451 -- Added ASGI handler and coroutine-safety\u201d) introduced `ASGIStaticFilesHandler` and changed `StaticFilesHandlerMixin` to be shared by WSGI and ASGI handlers.\n  - The mixin already had synchronous `get_response()`, but no `get_response_async()`. Because the inheritance order is `StaticFilesHandlerMixin, ASGIHandler`, the mixin\u2019s method resolution takes precedence, and the inherited ASGI `__call__()` invokes `self.get_response_async(request)`. No such method exists on the mixin or the resulting class, producing the reported failure.\n  - The subsequent commits touching this file (`34f589ba88`, `6a92bcf55b`) are unrelated cleanup/refactoring and do not address async response handling.\n\n- **`django/core/handlers/asgi.py`**\n  - `a415ce70be` introduced the generic ASGI entry point, including:\n    ```python\n    response = await self.get_response_async(request)\n    ```\n  - Later async-handler commits (`fc0fa72ff4`, `92507bf3ea`) concern asynchronous views, middleware, and lifecycle signals. They do not indicate that the generic ASGI handler should be changed for this static-files-specific issue.\n  - The call is correct for normal `ASGIHandler` instances; the defect is that the static-files mixin overrides the synchronous method without providing the async counterpart.\n\n- **`django/core/handlers/base.py`**\n  - `fc0fa72ff4` added/updated the generic `BaseHandler.get_response_async()`.\n  - Its implementation assumes that `_middleware_chain` is an async callable and is appropriate for the ordinary ASGI request path. Changing it would affect all handlers and is not justified by this bug.\n\nTherefore, **only `django/contrib/staticfiles/handlers.py` should change** among the implicated product paths. The intended fix is to add an asynchronous counterpart to `StaticFilesHandlerMixin`, likely:\n\n```python\nasync def get_response_async(self, request):\n    try:\n        return await sync_to_async(self.serve, thread_sensitive=True)(\n            request,\n        )\n    except Http404 as e:\n        return response_for_exception(request, e)\n```\n\n(or the equivalent project-style implementation), while retaining the existing synchronous `get_response()` for WSGI. `django/core/handlers/asgi.py` and `django/core/handlers/base.py` should remain unchanged."
+    }
+  ]
+}

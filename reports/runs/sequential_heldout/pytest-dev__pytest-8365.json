@@ -1,0 +1,35 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 29.939407299971208,
+  "prompt_tokens": 42127,
+  "completion_tokens": 1047,
+  "cost_usd": 0.009681799999999999,
+  "instance_id": "pytest-dev__pytest-8365",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/tmpdir.py"
+  ],
+  "files": [
+    "src/_pytest/tmpdir.py",
+    "src/_pytest/pathlib.py",
+    "src/_pytest/fixtures.py"
+  ],
+  "reasoning": "The fault lives in src/_pytest/tmpdir.py: get_user() returns getpass.getuser() unchanged, and getbasetemp() interpolates that value directly into the directory name pytest-of-{user}. A username such as contoso\\john_doe is therefore interpreted as a malformed Windows path, causing rootdir.mkdir() to fail before numbered-directory creation. src/_pytest/pathlib.py is only the implementation dependency used after the faulty root directory is constructed, while src/_pytest/fixtures.py merely exposes factories created by tmpdir.py and does not construct basetemp.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `src/_pytest/tmpdir.py` \u2014 This is the primary and most suspicious candidate: `TempPathFactory.getbasetemp()` calls `get_user()`, which returns `getpass.getuser()` unchanged, and interpolates it directly into `pytest-of-{user}`. A username such as `contoso\\john_doe` therefore becomes part of the temporary-directory path and can cause Windows path creation to fail; I am unsure only whether the intended fix should sanitize the username or avoid using it in the directory name entirely."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `src/_pytest/tmpdir.py` \u2014 Strongest candidate. The file\u2019s recent history includes multiple changes through 2020, with the latest functional changes involving the temporary-directory implementation and later pathlib/type-annotation refactors. The relevant code is still unchanged in the key area: `get_user()` returns `getpass.getuser()` unchanged, and `getbasetemp()` interpolates that value directly into `pytest-of-{user}`. A username such as `contoso\\john_doe` therefore becomes a malformed Windows path component. Blame shows the affected `getbasetemp()` logic originates in the 2018 temporary-directory implementation, while the file has continued receiving recent maintenance changes, making it the clearly supported product-code suspect.\n\n2. `src/_pytest/pathlib.py` \u2014 Nearby implementation dependency, but weaker. Its recent history includes changes to temporary-directory-related path handling, including cleanup-period changes and pathlib conversions. However, the reported failure occurs before numbered-directory creation, at `rootdir.mkdir()` in `src/_pytest/tmpdir.py`; no history evidence points to the path helper as the source of the username interpolation problem.\n\n3. `src/_pytest/fixtures.py` \u2014 Related only through fixture exposure. Its recent history is active, but the fixture definitions merely return the factories created by `src/_pytest/tmpdir.py`; they do not determine or construct `basetemp`. No history evidence supports it as the cause, so it should not outrank the temporary-directory implementation."
+    }
+  ]
+}

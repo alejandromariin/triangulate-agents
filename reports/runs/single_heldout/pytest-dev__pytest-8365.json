@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 14.242487599956803,
+  "prompt_tokens": 43349,
+  "completion_tokens": 360,
+  "cost_usd": 0.009101800000000002,
+  "instance_id": "pytest-dev__pytest-8365",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/tmpdir.py"
+  ],
+  "files": [
+    "src/_pytest/tmpdir.py"
+  ],
+  "reasoning": "The reported failure originates in TempPathFactory.getbasetemp(), where get_user() is interpolated directly into the pytest-of-{user} directory name. This is the shared implementation used by tmpdir_factory, tmp_path_factory, tmpdir, and tmp_path, so this product file is the source file that must be changed.",
+  "stages": []
+}
