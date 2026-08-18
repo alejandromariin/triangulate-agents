@@ -9,6 +9,63 @@ left to the code.
 
 ---
 
+### D-014 · The headline figures come from `dev`, because the held-out split saturates
+**2026-08-18**
+
+The held-out split was always meant to produce the reported numbers. It is
+reported, but the comparison is headlined with `dev` (26 instances) instead, and
+the reason is a property of the result rather than a preference.
+
+- **What happened:** on the 11 held-out instances compared, all four topologies
+  place the gold file inside their five candidates in 100% of cases. Every
+  Accuracy@5 is 1.00 and every Accuracy@1 is 1.00 or 0.91. The entire spread
+  between topologies is one instance, `psf__requests-2317`, ranked second by two
+  of them.
+- **Why that forces the change:** with 11 instances one bug is worth 9 points, so
+  the split cannot separate the topologies even in principle. Leading with it
+  would present a difference of one instance as a result.
+- **What the held-out split is used for instead:** confirming that the ordering
+  found on `dev` does not collapse on data no prompt was ever tuned against. It
+  does not — the single agent equals or beats every multi-agent topology on both
+  splits, at a fraction of the cost. That is the guarantee the split exists to
+  provide, and it is met.
+- **How to read the numbers:** `dev` figures are the comparison; held-out figures
+  are the check against overfitting. Neither is a SWE-bench score, and both come
+  from a single run per topology (D-012).
+- **What would fix the saturation** is a harder task — multi-file bugs, or
+  function-level ground truth — not a larger held-out split. The ceiling is the
+  task's, not the sample's.
+
+### D-013 · The parallel topology is measured under an account rate limit, and one instance is excluded
+**2026-08-18**
+
+The parallel topology spends its tokens in a burst — three specialists run at
+once — against an account limit of 200,000 tokens per minute. On
+`matplotlib__matplotlib-26011` that burst cannot fit: the same instance costs
+298,000 prompt tokens in the sequential topology, which spreads them over
+minutes and passes, while the parallel one requests them at once and is refused.
+Waiting does not help, since a single instance exceeds the per-minute allowance
+on its own.
+
+- **The instance is excluded from every topology**, not just from the parallel
+  one. Comparing a row of 11 instances with rows of 12 would attribute to
+  architecture whatever difference the twelfth bug carried.
+- **Considered:** staggering the specialists so the burst fits. Rejected — the
+  simultaneity *is* the topology, and pacing it would silently turn the parallel
+  row into a slower sequential one while still being labelled parallel.
+- **Considered:** raising the account limit and rerunning. Rejected as
+  self-defeating unless the whole topology were rerun: the other instances were
+  measured under throttling, and mixing throttled and unthrottled instances in
+  one row makes its latency column meaningless.
+- **How to read the numbers:** the parallel topology's elapsed times include
+  waiting imposed by the rate limit, so its latency advantage is measured under a
+  ceiling and would be larger without one. Its accuracy is unaffected — a refused
+  call fails an instance rather than degrading its answer.
+- **Worth stating as a property of the architecture:** concentrating spend into a
+  burst makes a topology sensitive to per-minute limits in a way its total cost
+  does not reveal. Two topologies with the same token bill are not equally
+  runnable.
+
 ### D-012 · The system is stochastic, and differences of one instance are not read as differences
 **2026-08-16**
 
