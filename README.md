@@ -1,4 +1,4 @@
-# Triangulate
+# Triangulate Agents
 
 > When does a multi-agent architecture beat a single agent — and what does that gain cost?
 
