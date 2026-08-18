@@ -10,6 +10,7 @@ stopped. Delete the run directory to force everything to be answered again.
 
 import argparse
 import json
+import re
 import time
 from pathlib import Path
 
@@ -87,9 +88,16 @@ def attempt(topology: str, instance: dict) -> dict:
         return run_instance(topology, instance)
 
 
+# Provider errors quote the account they were refused for, and those errors are
+# captured verbatim as an agent's output. Results are committed, so the account
+# identifier is removed before anything reaches disk.
+ACCOUNT_IDENTIFIER = re.compile(r"org-[A-Za-z0-9]{12,}")
+
+
 def write(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    text = json.dumps(payload, indent=2)
+    path.write_text(ACCOUNT_IDENTIFIER.sub("org-REDACTED", text), encoding="utf-8")
 
 
 def main() -> None:

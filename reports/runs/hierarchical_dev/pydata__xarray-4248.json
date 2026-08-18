@@ -30,7 +30,7 @@
     {
       "role": "History investigator",
       "asked": "Inspect recent repository commits/history related to Dataset repr, formatting, variable summaries, coordinates/data variables, or units. Determine whether the requested behavior likely belongs in one or more specific product files, and report exact complete paths as printed. Exclude tests.",
-      "output": "Error executing task with agent 'history investigator'. Error: Error code: 429 - {'error': {'message': 'Rate limit reached for gpt-5.6-luna in organization org-gncM4qrjAaph4fzrgSYqo9rB on tokens per min (TPM): Limit 200000, Used 186985, Requested 13076. Please try again in 18ms. Visit https://platform.openai.com/account/rate-limits to learn more.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}"
+      "output": "Error executing task with agent 'history investigator'. Error: Error code: 429 - {'error': {'message': 'Rate limit reached for gpt-5.6-luna in organization org-REDACTED on tokens per min (TPM): Limit 200000, Used 186985, Requested 13076. Please try again in 18ms. Visit https://platform.openai.com/account/rate-limits to learn more.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}"
     },
     {
       "role": "Dependency investigator",
@@ -45,7 +45,7 @@
     {
       "role": "History investigator",
       "asked": "Inspect recent commit history relevant to Dataset repr/formatting and showing units from attrs. Report concrete product-code paths from commits and whether history points to a likely implementation file. Do not include tests.",
-      "output": "Error executing task with agent 'history investigator'. Error: Error code: 429 - {'error': {'message': 'Rate limit reached for gpt-5.6-luna in organization org-gncM4qrjAaph4fzrgSYqo9rB on tokens per min (TPM): Limit 200000, Used 188428, Requested 11663. Please try again in 27ms. Visit https://platform.openai.com/account/rate-limits to learn more.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}"
+      "output": "Error executing task with agent 'history investigator'. Error: Error code: 429 - {'error': {'message': 'Rate limit reached for gpt-5.6-luna in organization org-REDACTED on tokens per min (TPM): Limit 200000, Used 188428, Requested 11663. Please try again in 27ms. Visit https://platform.openai.com/account/rate-limits to learn more.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}"
     },
     {
       "role": "Dependency investigator",
