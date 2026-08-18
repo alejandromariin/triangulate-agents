@@ -1,0 +1,37 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 38.32391530001769,
+  "prompt_tokens": 73733,
+  "completion_tokens": 2470,
+  "cost_usd": 0.0177106,
+  "instance_id": "psf__requests-2148",
+  "repo": "psf/requests",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "requests/models.py"
+  ],
+  "files": [
+    "requests/packages/urllib3/response.py",
+    "requests/models.py",
+    "requests/adapters.py"
+  ],
+  "reasoning": "The socket reset occurs during lazy response-body consumption, where requests/models.py calls urllib3's stream/read path. requests/packages/urllib3/response.py is the most suspicious file because its read handling does not convert raw socket.error, while requests/models.py lacks a wrapper for that exception during iter_content. requests/adapters.py only wraps errors during initial request creation, before later response reads occur.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for socket.error, ConnectionError, iter_content, response stream/read, urllib3 response handling, and exception wrapping. Return the most relevant complete repository-relative product-code file paths exactly as printed, with brief evidence.",
+      "output": "requests/models.py \u2014 `Response.iter_content()` consumes `self.raw.stream(...)` and only wraps `IncompleteRead` as `ChunkedEncodingError` and `DecodeError` as `ContentDecodingError`; raw socket errors during response consumption are not wrapped. `Response.content` and `Response.text` trigger this consumption.\n\nrequests/packages/urllib3/response.py \u2014 `HTTPResponse.stream()` repeatedly calls `read()`, whose `_fp.read(amt)` path catches `SocketTimeout`, SSL timeout errors, and `HTTPException`, but does not catch or convert `socket.error`; a gevent socket reset can therefore escape as raw `socket.error`.\n\nrequests/packages/urllib3/connectionpool.py \u2014 urllib3 wraps `SocketError` while establishing/performing the request as `ProtocolError` and retries it, but this handling is around `urlopen()` and does not cover later streamed response reads.\n\nrequests/adapters.py \u2014 `HTTPAdapter.send()` maps `socket.error` and urllib3 `MaxRetryError` to `requests.exceptions.ConnectionError`, but this exception boundary ends when the initial response is returned, so errors raised during later `Response.content`/`iter_content()` consumption bypass it.\n\nrequests/exceptions.py \u2014 Defines `requests.exceptions.ConnectionError` as a `RequestException`; this is the target wrapper expected by the bug report."
+    },
+    {
+      "role": "History investigator",
+      "asked": "Inspect recent commit history relevant to response streaming, socket errors, urllib3 vendoring, and exception wrapping. Identify which of the listed product files most likely should change for this bug, and report exact repository-relative paths with evidence.",
+      "output": "Most likely product files to change, in priority order:\n\n1. `requests/packages/urllib3/response.py`\n\n   **Evidence:** This is the direct lazy-read path named in the report. `HTTPResponse.read()` calls `self._fp.read()` at lines 177\u2013183, but its exception handling only converts `SocketTimeout`, `BaseSSLError`, and `HTTPException` (lines 195\u2013211). A raw `socket.error` raised while consuming the body therefore escapes this method. The relevant read implementation was substantially refreshed very recently by vendored urllib3 upgrade commit `811ee4eb` on 2014-07-21:\n\n   - `811ee4eb 2014-07-21 Ian Cordasco: Upgrade urllib3 to 1.9.x`\n\n   Blame confirms the current read/error-handling block is from that upgrade. This is the strongest candidate because the missing conversion occurs exactly where the socket reset happens.\n\n2. `requests/models.py`\n\n   **Evidence:** `Response.content` consumes the body through `iter_content`, and `iter_content` invokes `self.raw.stream(...)` at lines 633\u2013642. It wraps only `IncompleteRead` as `ChunkedEncodingError` and `DecodeError` as `ContentDecodingError`; there is no handling for `socket.error` or a urllib3 protocol/read error that should become `requests.exceptions.ConnectionError`. The current `iter_content` structure is older, with the key lines last changed in 2013\u20132014:\n\n   - `79f3e69f 2013-07-28 Cory Benfield: Wrap IncompleteRead in ChunkedEncodingError`\n   - `aad82870 2013-12-19 daftshady: Re-raise DecodeError`\n   - `c6084704 2014-01-31 Kenneth Reitz: ...` for the stream call\n\n   This file is a plausible integration-layer fix if Requests should translate the read exception while iterating, but it is less direct than fixing urllib3\u2019s `read()` conversion.\n\n3. `requests/adapters.py`\n\n   **Evidence:** `HTTPAdapter.send()` maps `socket.error` and `MaxRetryError` to `ConnectionError` at lines 389\u2013393, but that `try` block covers request establishment and response creation only. The response is created with `preload_content=False` (lines 373\u2013378), so later body reads occur after `send()` returns and cannot reach this wrapper. The adapter has recent relevant history:\n\n   - `59c8d813 2014-03-10 schlamar: Read content in Session.send instead of Adapter.send`\n   - `fe693c49 2014-07-22 Kenneth Reitz: Merge pull request #2142 from sigmavirus24/urllib3-1.9`\n\n   This explains why the existing adapter mapping does not solve a lazy-read failure. It could be changed to wrap the returned stream, but that would be a less natural fix than correcting the lower-level response path.\n\nLower-priority/context-only files:\n\n- `requests/packages/urllib3/connectionpool.py`\n\n  It already catches `SocketError` around connection acquisition/request establishment at lines 509\u2013559 and converts it to `ProxyError` or `ProtocolError`, followed by retry handling. That scope ends before the returned response is lazily read, so it is not the likely location for this bug. Its current logic was also refreshed by `811ee4eb` (`Upgrade urllib3 to 1.9.x`), but the existing catch is explicitly establishment-side.\n\n- `requests/exceptions.py`\n\n  It defines the target `ConnectionError` at lines 34\u201336, and the exception hierarchy is established and appropriate. Recent history includes connection-related exception work:\n\n  - `4291f76c 2013-10-04 Graham Dumpleton: Translate urllib3 ProxyError into a requests ProxyError derived from ConnectionError`\n  - `79f3e69f 2013-07-28 Cory Benfield: Wrap IncompleteRead in ChunkedEncodingError`\n\n  However, no definition change is needed to address the raw socket exception. This file should likely remain unchanged.\n\n**Recommended product-file set:** start with the exact path `requests/packages/urllib3/response.py`; inspect or modify `requests/models.py` next if the intended Requests-level contract requires translation in `iter_content`. `requests/adapters.py` is relevant only as evidence that the current wrapper covers initial send errors, while `requests/packages/urllib3/connectionpool.py` and `requests/exceptions.py` are unlikely primary fix locations."
+    }
+  ]
+}

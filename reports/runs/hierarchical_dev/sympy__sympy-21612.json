@@ -1,0 +1,34 @@
+{
+  "hit@1": 0,
+  "hit@3": 0,
+  "hit@5": 0,
+  "rr": 0.0,
+  "rank": null,
+  "n_candidates": 5,
+  "bare_names": 0,
+  "seconds": 31.167081399995368,
+  "prompt_tokens": 60050,
+  "completion_tokens": 1320,
+  "cost_usd": 0.013594,
+  "instance_id": "sympy__sympy-21612",
+  "repo": "sympy/sympy",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sympy/printing/str.py"
+  ],
+  "files": [
+    "sympy/parsing/latex/_parse_latex_antlr.py",
+    "sympy/parsing/latex/LaTeX.g4",
+    "sympy/parsing/latex/_antlr/latexparser.py",
+    "sympy/parsing/latex/_build_latex_antlr.py",
+    "sympy/parsing/latex/__init__.py"
+  ],
+  "reasoning": "The primary product implementation is sympy/parsing/latex/_parse_latex_antlr.py, where fraction conversion constructs the resulting expression and can lose grouping for a nested denominator. The grammar source sympy/parsing/latex/LaTeX.g4 defines fraction, group, and multiplication/division parsing rules that may need adjustment. The generated parser sympy/parsing/latex/_antlr/latexparser.py and its build utility sympy/parsing/latex/_build_latex_antlr.py are relevant if the grammar changes. The public entry point sympy/parsing/latex/__init__.py delegates parsing but is less likely to be the defect location.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for the LaTeX parser implementation and specifically fraction/nested grouping logic. Identify up to 5 product files most likely needing changes; do not include tests.",
+      "output": "1. `sympy/parsing/latex/_parse_latex_antlr.py`  \n   Primary transformer for the reported behavior. `convert_frac()` converts both numerator and denominator via `convert_expr()` and constructs the result with `sympy.Mul(expr_top, inverse_denom, evaluate=False)` (lines 383\u2013389). This is the most likely location where a nested fraction denominator loses explicit grouping.\n\n2. `sympy/parsing/latex/LaTeX.g4`  \n   Defines the LaTeX grammar for expressions, multiplication/division, groups, and fractions. The relevant rules are `mp` (lines 164\u2013167), `group` (lines 222\u2013226), and `frac` (lines 243\u2013244), where both fraction arguments are parsed as `expr`. This is the likely grammar source if nested grouping or operator precedence must be changed.\n\n3. `sympy/parsing/latex/_antlr/latexparser.py`  \n   Generated ANTLR parser corresponding to `LaTeX.g4`, including the `LaTeXParser` class and generated implementations of the `mp`, `group`, and `frac` rules. It may need regeneration or synchronized changes if the grammar is modified.\n\n4. `sympy/parsing/latex/_build_latex_antlr.py`  \n   Parser-generation utility that builds the files under `sympy/parsing/latex/_antlr/` from `LaTeX.g4`. It is relevant for applying and propagating any grammar fix, though it is less likely to contain the bug itself.\n\n5. `sympy/parsing/latex/__init__.py`  \n   Public `parse_latex()` entry point, which loads and delegates to `_parse_latex_antlr.parse_latex`. It is unlikely to require changes unless the fix involves parser backend selection or result handling."
+    }
+  ]
+}

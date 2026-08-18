@@ -1,0 +1,35 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 28.11762449995149,
+  "prompt_tokens": 53218,
+  "completion_tokens": 1785,
+  "cost_usd": 0.012785600000000001,
+  "instance_id": "pytest-dev__pytest-6116",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/main.py"
+  ],
+  "files": [
+    "src/_pytest/main.py"
+  ],
+  "reasoning": "The --collect-only option is declared in src/_pytest/main.py, where a one-character alias can be added to the existing option registration. The parser infrastructure already supports short options, and downstream consumers use the existing collectonly destination, so no other product files need to change.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for the --collect-only option, its short-option declarations, and the command-line parser/configuration code. Return the complete exact paths of the most relevant product files, with brief evidence.",
+      "output": "`src/_pytest/main.py`  \n- Defines the pytest `--collect-only` option in `pytest_addoption()`:\n  ```python\n  group = parser.getgroup(\"collect\", \"collection\")\n  group.addoption(\n      \"--collectonly\",\n      \"--collect-only\",\n      action=\"store_true\",\n      help=\"only collect tests, don't execute them.\",\n  ),\n  ```\n- This is the primary product file to change to add a one-character shortcut, likely by adding a short option such as `\"-C\"` to the declaration.\n\n`src/_pytest/config/argparsing.py`  \n- Implements pytest\u2019s custom command-line option declarations and parser integration.\n- `Parser.addoption()` registers options, `_getparser()` passes them to `argparse`, and `OptionGroup.addoption()` handles short/long option names.\n- The parser explicitly supports short options and reserves lowercase short options for internal declarations:\n  ```python\n  :opts: option names, can be short or long options.\n  ```\n- Relevant if adding or validating shortcut behavior, but the `--collect-only` declaration itself belongs in `src/_pytest/main.py`.\n\n`src/_pytest/config/__init__.py`  \n- Constructs the command-line `Parser`, invokes all `pytest_addoption` hooks, and maps registered option names to configuration destinations.\n- Relevant parser/configuration integration:\n  ```python\n  self._parser = Parser(...)\n  ...\n  self.hook.pytest_addoption.call_historic(\n      kwargs=dict(parser=self._parser, pluginmanager=self.pluginmanager)\n  )\n  ```\n\n`src/_pytest/terminal.py`  \n- Defines other pytest CLI options via `pytest_addoption()` and consumes the `collectonly` configuration value for terminal reporting.\n- It references the option with:\n  ```python\n  self.config.getoption(\"collectonly\")\n  ```\n- Relevant for behavior/help output review, but not the primary declaration site.\n\n`src/_pytest/logging.py`  \n- Reads `session.config.option.collectonly` to adjust live logging behavior during collection-only runs.\n- This is a downstream consumer, not the option declaration or parser implementation.\n\n`src/_pytest/pytester.py`  \n- Contains product support code invoking collection-only mode:\n  ```python\n  self.inline_run(\"--collect-only\", *args)\n  ```\n- This is a consumer/helper reference rather than the CLI declaration or parser code."
+    },
+    {
+      "role": "Dependency investigator",
+      "asked": "Trace the implementation dependencies for adding a short alias to --collect-only. Based on the repository, identify the minimum product-code files that would need changes, and whether src/_pytest/config/argparsing.py or downstream consumers must change. Return exact paths and concise evidence.",
+      "output": "Minimum product-code change:\n\n- **`src/_pytest/main.py`**\n  - In `pytest_addoption()`, the `collect` group currently declares:\n    ```python\n    group.addoption(\n        \"--collectonly\",\n        \"--collect-only\",\n        action=\"store_true\",\n        help=\"only collect tests, don't execute them.\",\n    )\n    ```\n  - Add the one-character alias as another option string, e.g. `\"-C\"` (or the specifically chosen alias):\n    ```python\n    group.addoption(\n        \"-C\",\n        \"--collectonly\",\n        \"--collect-only\",\n        action=\"store_true\",\n        help=\"only collect tests, don't execute them.\",\n    )\n    ```\n  - Because no explicit `dest` is supplied, the first long option determines the destination (`collectonly`); adding a short option does not change the existing consumer-facing attribute.\n\nNo change is needed in:\n\n- **`src/_pytest/config/argparsing.py`**\n  - `Argument._set_opt_strings()` already accepts valid short options of the form `-x` (lines 253\u2013279).\n  - `Argument.names()` returns both short and long option strings (lines 233\u2013234).\n  - `Parser._getparser()` passes all names to argparse (`arggroup.add_argument(*n, **a)`, lines 88\u2013100).\n  - Therefore parser infrastructure already supports registering and parsing a short alias.\n\n- **`src/_pytest/terminal.py`**\n- **`src/_pytest/logging.py`**\n  - These are unrelated option declarations/consumers and do not implement `--collect-only`.\n  - The collection mode is exposed through the existing parsed destination, so downstream code need not change merely to add an alias.\n\nThus, the minimum implementation dependency is **only `src/_pytest/main.py`**. Downstream consumers would require changes only if the new alias were intended to introduce a new destination or different behavior; with an additional option string, argparse maps it to the existing `collectonly` option automatically."
+    }
+  ]
+}

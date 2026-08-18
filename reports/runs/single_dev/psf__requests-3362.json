@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 15.060455200029537,
+  "prompt_tokens": 25371,
+  "completion_tokens": 237,
+  "cost_usd": 0.005358600000000001,
+  "instance_id": "psf__requests-3362",
+  "repo": "psf/requests",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "requests/utils.py"
+  ],
+  "files": [
+    "requests/utils.py",
+    "requests/models.py"
+  ],
+  "reasoning": "The bug is localized to Response.iter_content() in requests/models.py, which delegates decode_unicode=True to stream_decode_response_unicode(). That helper in requests/utils.py explicitly yields raw chunks when r.encoding is None (lines 362\u2013365), causing application/json responses without a declared charset to remain bytes even though Response.text later falls back to apparent_encoding. Fixing the encoding fallback for streaming decoding likely requires these two product files.",
+  "stages": []
+}

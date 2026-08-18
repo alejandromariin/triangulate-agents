@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 23.538720699958503,
+  "prompt_tokens": 68042,
+  "completion_tokens": 432,
+  "cost_usd": 0.014126800000000002,
+  "instance_id": "astropy__astropy-7746",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/wcs/wcs.py"
+  ],
+  "files": [
+    "astropy/wcs/wcs.py",
+    "astropy/wcs/src/wcslib_wrap.c"
+  ],
+  "reasoning": "The reported traceback enters astropy/wcs/wcs.py::_array_converter, where empty coordinate axes are reshaped and passed directly to self.wcs.p2s. The underlying PyWcsprm_p2s implementation in astropy/wcs/src/wcslib_wrap.c calls wcsp2s with ncoord=0, which wcslib rejects as inconsistent. The fix should therefore handle zero-coordinate inputs in the Python converter and/or the C wrapper, preserving correctly shaped empty outputs.",
+  "stages": []
+}

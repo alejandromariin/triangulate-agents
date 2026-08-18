@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 11.653208900010213,
+  "prompt_tokens": 18300,
+  "completion_tokens": 189,
+  "cost_usd": 0.0038868,
+  "instance_id": "scikit-learn__scikit-learn-10508",
+  "repo": "scikit-learn/scikit-learn",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "sklearn/preprocessing/label.py"
+  ],
+  "files": [
+    "sklearn/preprocessing/label.py"
+  ],
+  "reasoning": "The reported traceback points directly to LabelEncoder.transform(), and sklearn/preprocessing/label.py contains the implementation. The failure occurs at np.searchsorted(self.classes_, y) after column_or_1d([]) produces an empty float array that is incompatible with string classes_; this method must handle empty inputs while preserving the fitted class dtype.",
+  "stages": []
+}

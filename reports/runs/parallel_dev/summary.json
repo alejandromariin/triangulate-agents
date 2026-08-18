@@ -1,0 +1,41 @@
+{
+  "topology": "parallel",
+  "split": "dev",
+  "failed": [],
+  "all": {
+    "accuracy@1": 0.8076923076923077,
+    "accuracy@3": 0.9230769230769231,
+    "accuracy@5": 0.9230769230769231,
+    "mrr": 0.8653846153846154,
+    "n": 26,
+    "bare_names": 0,
+    "seconds": 28.841137246148158,
+    "prompt_tokens": 112875.73076923077,
+    "completion_tokens": 2387.1923076923076,
+    "cost_usd": 0.6614342
+  },
+  "hinted": {
+    "accuracy@1": 0.9090909090909091,
+    "accuracy@3": 1,
+    "accuracy@5": 1,
+    "mrr": 0.9545454545454546,
+    "n": 11,
+    "bare_names": 0,
+    "seconds": 22.12159337272698,
+    "prompt_tokens": 74481.90909090909,
+    "completion_tokens": 2133.4545454545455,
+    "cost_usd": 0.19202180000000002
+  },
+  "unhinted": {
+    "accuracy@1": 0.7333333333333333,
+    "accuracy@3": 0.8666666666666667,
+    "accuracy@5": 0.8666666666666667,
+    "mrr": 0.8,
+    "n": 15,
+    "bare_names": 0,
+    "seconds": 33.76880275332369,
+    "prompt_tokens": 141031.2,
+    "completion_tokens": 2573.266666666667,
+    "cost_usd": 0.4694124
+  }
+}

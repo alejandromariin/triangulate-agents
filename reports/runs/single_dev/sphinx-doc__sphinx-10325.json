@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 39.94522819999838,
+  "prompt_tokens": 82509,
+  "completion_tokens": 453,
+  "cost_usd": 0.0170454,
+  "instance_id": "sphinx-doc__sphinx-10325",
+  "repo": "sphinx-doc/sphinx",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sphinx/ext/autodoc/__init__.py"
+  ],
+  "files": [
+    "sphinx/ext/autodoc/__init__.py",
+    "doc/usage/extensions/autodoc.rst"
+  ],
+  "reasoning": "The option parser and inherited-member filtering are implemented in sphinx/ext/autodoc/__init__.py. Inherited-member filtering currently compares a single class name at line 685, so it must be updated to accept and match multiple classes; the option specification is also defined there for automodule and autoclass. The user-facing behavior and accepted syntax are documented in doc/usage/extensions/autodoc.rst and should be updated to describe a list of classes.",
+  "stages": []
+}

@@ -1,0 +1,36 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 4,
+  "bare_names": 0,
+  "seconds": 30.991055999998935,
+  "prompt_tokens": 92715,
+  "completion_tokens": 1818,
+  "cost_usd": 0.0207246,
+  "instance_id": "psf__requests-2148",
+  "repo": "psf/requests",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "requests/models.py"
+  ],
+  "files": [
+    "requests/packages/urllib3/response.py",
+    "requests/models.py",
+    "requests/adapters.py",
+    "requests/exceptions.py"
+  ],
+  "reasoning": "The fault lives most directly in requests/packages/urllib3/response.py: HTTPResponse.read() is the active body-reading path in the traceback, and its nested exception handling catches SocketTimeout, selected SSL errors, and HTTPException but not general socket.error, allowing a connection reset from gevent.socket.recv() to escape raw. requests/models.py is the caller that consumes raw.stream() through Response.content and only wraps IncompleteRead and DecodeError, so it exposes rather than originates the missing conversion. requests/adapters.py wraps socket.error during initial transport setup, but that handler is no longer active once a response has been returned and its body is read. requests/exceptions.py only defines ConnectionError and contains no conversion logic.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `requests/adapters.py` \u2014 Most suspicious: this is the request transport layer and explicitly catches `socket.error` and wraps it as `requests.exceptions.ConnectionError`. I am unsure whether the reported reset occurs during initial request handling, because the traceback shows it happens later while consuming `response.text`.\n\n2. `requests/packages/urllib3/response.py` \u2014 Highly suspicious: `Response.text` ultimately calls this file\u2019s `HTTPResponse.read()` through `stream()`, exactly matching the traceback\u2019s `raw.stream`/`read` path. Its read handler catches socket timeouts, SSL errors, and `HTTPException`, but has no general `socket.error` handler, allowing a reset raised by `recv()` to escape raw. I am unsure whether the gevent socket error is a subclass or wrapper that this bundled urllib3 version could identify differently.\n\n3. `requests/models.py` \u2014 Directly involved in the reported access: the `text` property evaluates `self.content`, which joins `iter_content()`, and `iter_content()` consumes `self.raw.stream()`. It wraps `IncompleteRead` and `DecodeError`, but not a raw socket exception. I am unsure whether the intended fix belongs here or in the lower-level urllib3 response implementation.\n\n4. `requests/exceptions.py` \u2014 Defines the expected `ConnectionError` type and shows that it derives from `RequestException`. It contains no conversion logic, so it is relevant as the target exception but unlikely to be the source of the uncaught raw socket error."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `requests/packages/urllib3/response.py` \u2014 **Strongest candidate.** The traceback follows `Response.text` \u2192 `Response.content` \u2192 `Response.iter_content()` \u2192 `self.raw.stream()` \u2192 `HTTPResponse.read()`, and this file contains that exact lower-level read path. Its recent history is especially significant: commit `811ee4eb` (2014-07-21, immediately before the report) upgraded the bundled urllib3 to 1.9.x, and blame shows that commit introduced the current nested read exception handling. The handler wraps `SocketTimeout`, selected SSL errors, and `HTTPException`, but does not catch general `socket.error`; consequently a reset from `gevent.socket.recv()` can escape unchanged. This file best matches both the failure location and the most recent relevant change.\n\n2. `requests/models.py` \u2014 **Secondary candidate.** The file is directly involved because its `text` property accesses `self.content`, which consumes `iter_content()`, and `iter_content()` only converts `IncompleteRead` to `ChunkedEncodingError` and `DecodeError` to `ContentDecodingError`. It does not catch raw socket errors. However, its relevant lines have older history: the streaming and wrapping logic was last changed mainly in 2013, with no recent commit near the report. The file exposes the exception but is less likely to be the correct fix location than urllib3\u2019s read implementation.\n\n3. `requests/adapters.py` \u2014 **Relevant but unlikely for this report.** Its history is comparatively recent, including `59c8d813` (2014-03-10), \u201cRead content in Session.send instead of Adapter.send,\u201d and the latest repository changes. The transport code explicitly catches `socket.error` and raises `ConnectionError`, confirming that initial request/setup failures are intended to be wrapped. But the shown traceback occurs after the adapter has returned a response, while reading the response body through `response.text`; therefore the adapter\u2019s `socket.error` handler is no longer active when the reset occurs.\n\n4. `requests/exceptions.py` \u2014 **Least likely source.** Recent history shows exception-class maintenance, including the 2014 move of common exception attributes and earlier additions for wrapping urllib3 errors. It defines `ConnectionError` as a `RequestException`, but contains no conversion or response-reading logic. It is the destination type for a fix, not the location allowing the raw socket exception through."
+    }
+  ]
+}

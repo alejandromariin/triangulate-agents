@@ -1,0 +1,33 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 38.039584500016645,
+  "prompt_tokens": 79823,
+  "completion_tokens": 1075,
+  "cost_usd": 0.0172546,
+  "instance_id": "astropy__astropy-14365",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "reasoning": "The fault lives directly in astropy/io/ascii/qdp.py. Its _line_type() classifier uses the case-sensitive regular expression `r\"READ [TS]ERR(\\s+[0-9]+)+\"`, so lowercase commands such as `read serr 1 2` are rejected before parsing reaches the downstream logic. The same file later lowercases the command keyword when interpreting it, confirming that command handling expects case normalization but the initial classifier fails to provide it. astropy/io/ascii/__init__.py only imports and exposes QDP, so it is an entry point rather than the source of the bug.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "Candidate files, most suspicious first:\n\n1. `astropy/io/ascii/qdp.py` \u2014 This is the direct QDP reader implementation, and `_line_type()` defines the command regex as `r\"READ [TS]ERR(\\s+[0-9]+)+\"`, which only matches uppercase `READ`, `SERR`, and `TERR`; this directly explains why `read serr 1 2` raises `ValueError`. I am unsure whether command normalization should happen in `_line_type()` or by making the regex case-insensitive, and whether lowercase `NO` data markers should also be accepted.\n\nNo other product-code files matched the report\u2019s distinctive QDP parsing terms."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `astropy/io/ascii/qdp.py` \u2014 **Strongest and direct suspect.** The file contains the QDP parser and the reported failure is explained by `_line_type()` line 63:\n\n   ```python\n   _command_re = r\"READ [TS]ERR(\\s+[0-9]+)+\"\n   ```\n\n   This regular expression only recognizes uppercase `READ`, `SERR`, and `TERR`, so `read serr 1 2` is rejected before table parsing. The surrounding parser later lowercases the command keyword when interpreting it (`command[1].lower()`), indicating that case normalization is already expected downstream but is missing during line classification.\n\n   History shows the problematic command regex was introduced in the original QDP reader commit `6553e7214ff` on **2021-01-18** and was last changed by `6e80e68e817` on **2022-11-08** as part of Black formatting-related changes. The blame confirms the exact restrictive regex line was last touched by that recent 2022 change, making this file the clear product-code target. The nearby `_new_re` and `_data_re` also require uppercase `NO`; whether lowercase `no` should be accepted is a separate compatibility question, but the reported crash specifically comes from `_command_re`."
+    }
+  ]
+}

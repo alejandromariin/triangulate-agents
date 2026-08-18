@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 41.045485400012694,
+  "prompt_tokens": 80124,
+  "completion_tokens": 449,
+  "cost_usd": 0.0165636,
+  "instance_id": "scikit-learn__scikit-learn-11040",
+  "repo": "scikit-learn/scikit-learn",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sklearn/neighbors/base.py"
+  ],
+  "files": [
+    "sklearn/neighbors/base.py",
+    "sklearn/neighbors/approximate.py"
+  ],
+  "reasoning": "sklearn/neighbors/base.py contains the shared NeighborsBase fitting logic and KNeighborsMixin.kneighbors implementation. It currently performs comparisons and integer-dependent operations on n_neighbors without validating that the value is an integer, affecting both constructor-supplied and per-call values. The same missing validation exists in sklearn/neighbors/approximate.py for its separate kneighbors implementation, so it may also need the corresponding parameter validation.",
+  "stages": []
+}

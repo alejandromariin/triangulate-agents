@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 25.48796910000965,
+  "prompt_tokens": 67328,
+  "completion_tokens": 397,
+  "cost_usd": 0.013942,
+  "instance_id": "pylint-dev__pylint-7228",
+  "repo": "pylint-dev/pylint",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "pylint/config/argument.py"
+  ],
+  "files": [
+    "pylint/config/argument.py"
+  ],
+  "reasoning": "The reported traceback occurs while argparse converts the configuration value for a regexp option. The repository\u2019s active argparse transformer maps the \"regexp\" type directly to Python\u2019s re.compile at pylint/config/argument.py:133, which rejects the reported \\p{Han} escape. This is the product-code path responsible for function-rgx parsing and is the primary file requiring modification.",
+  "stages": []
+}

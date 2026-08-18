@@ -1,0 +1,35 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 41.809683999978006,
+  "prompt_tokens": 68704,
+  "completion_tokens": 1203,
+  "cost_usd": 0.0151844,
+  "instance_id": "django__django-11179",
+  "repo": "django/django",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "django/db/models/deletion.py"
+  ],
+  "files": [
+    "django/db/models/deletion.py",
+    "django/db/models/query.py",
+    "django/db/models/base.py"
+  ],
+  "reasoning": "The defect lives in django/db/models/deletion.py: Collector.delete() returns immediately from the single-object fast-delete branch after delete_batch(), bypassing the later loop that sets collected instances\u2019 primary keys to None. django/db/models/base.py and django/db/models/query.py are callers that delegate deletion to Collector.delete() and do not perform primary-key handling themselves.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "django/db/models/deletion.py \u2014 Most suspicious. The reported location is the single-object, no-dependencies fast-delete branch: it returns immediately after `delete_batch()` at line 280, before the later PK-clearing loop at lines 324\u2013326. I\u2019m unsure whether the intended fix should directly clear the instance PK in this branch or restructure the return path, and whether related parent-PK handling needs consideration.\n\ndjango/db/models/base.py \u2014 Connects because `Model.delete()` collects the instance and delegates entirely to `Collector.delete()`, so it is the public instance-level entry point for the reported behavior. I\u2019m unsure that this file needs modification; the defect appears to be in the collector\u2019s early return.\n\ndjango/db/models/query.py \u2014 Connects because `QuerySet.delete()` also uses the deletion collector and could share the same fast-delete behavior. I\u2019m unsure whether the report concerns only `instance.delete()` or whether queryset deletion should also clear any materialized instances; this file is a secondary candidate rather than the apparent fault location."
+    },
+    {
+      "role": "History investigator",
+      "output": "django/db/models/deletion.py \u2014 Highest priority and the confirmed defect location. The fast-delete optimization was introduced by commit `bc7dd8490b` on 2018-09-27 (`Fixed #21171 -- Avoided starting a transaction when a single (or atomic queries) are executed.`). Blame shows lines 274\u2013280 all came from that commit, while the normal PK-clearing loop at lines 324\u2013326 predates it and was last changed in 2010. The early return after `delete_batch()` bypasses that loop, leaving the deleted instance\u2019s PK unchanged. This file should be modified, most likely by clearing `instance`\u2019s PK before returning from the fast-delete branch.\n\ndjango/db/models/query.py \u2014 Lower priority; no defect-specific history. Its recent deletion-related change is the same `bc7dd8490b` optimization in the shared collector, but `QuerySet.delete()` only collects objects and delegates to `Collector.delete()` at lines 698\u2013700. It does not perform PK handling itself, and its result-cache clearing at lines 702\u2013704 is unrelated. No modification is supported here.\n\ndjango/db/models/base.py \u2014 Lowest priority; no defect-specific history. `Model.delete()` at lines 910\u2013919 is a stable public entry point that constructs a `Collector`, collects the instance, and delegates to `collector.delete()`. Recent commits touching this file concern unrelated model behavior, while the deletion delegation itself is old. The bug is downstream in `django/db/models/deletion.py`, so this file should not be modified."
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 4,
+  "bare_names": 0,
+  "seconds": 148.3337976000039,
+  "prompt_tokens": 256650,
+  "completion_tokens": 1640,
+  "cost_usd": 0.053298,
+  "instance_id": "pytest-dev__pytest-7490",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/skipping.py"
+  ],
+  "files": [
+    "src/_pytest/skipping.py",
+    "src/_pytest/nodes.py",
+    "src/_pytest/fixtures.py",
+    "src/_pytest/mark/structures.py"
+  ],
+  "reasoning": "The fault lives in src/_pytest/skipping.py: pytest_runtest_setup caches evaluate_xfail_marks(item) as None, and pytest_runtest_call only reevaluates when the key is absent or None in a way that cannot distinguish the setup result from an unevaluated state after a marker is added during the test. src/_pytest/nodes.py correctly preserves dynamically added markers in own_markers, while src/_pytest/fixtures.py only exposes the request/node API and delegates marker insertion. src/_pytest/mark/structures.py constructs the marker but does not control xfail evaluation timing.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `src/_pytest/skipping.py` \u2014 This is the primary and most suspicious candidate: `evaluate_xfail_marks()` reads dynamically added markers, while `pytest_runtest_setup()` caches the result in `xfailed_key` before the test body runs. The call-phase logic only reevaluates when the cached value is `None`, so a marker added during the test is no longer noticed; I am unsure whether the intended fix is to refresh this cache during `pytest_runtest_call`/`pytest_runtest_makereport` or alter marker evaluation timing.\n\n2. `src/_pytest/nodes.py` \u2014 This implements `Node.add_marker()`, including appending the marker to `own_markers`, and therefore directly controls whether `request.node.add_marker(mark)` becomes visible to later `iter_markers()` calls. The method appears to preserve the marker correctly, so I am unsure that it is faulty rather than exposing the stale evaluation in `skipping.py`.\n\n3. `src/_pytest/fixtures.py` \u2014 `FixtureRequest.applymarker()` delegates directly to `self.node.add_marker(marker)` and documents dynamic application to one test invocation. This connects the report\u2019s `request` object behavior to the product API, but the delegation itself looks correct; I am unsure whether this file needs any change.\n\n4. `src/_pytest/mark/structures.py` \u2014 This defines `MarkDecorator`, marker creation, and conversion to stored `Mark` objects. It connects to `pytest.mark.xfail(reason=\"xfail\")`, but the decorator appears to produce a valid marker and no failure-specific behavior is here; I am unsure this file is involved beyond marker construction."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `src/_pytest/skipping.py` \u2014 **Strongest suspect.** Recent history shows a concentrated refactor immediately before the report:\n\n   - `3e6fe92b7` (2020-06-19): \u201cskipping: refactor skipif/xfail mark evaluation\u201d\n   - `c9737ae91` (2020-06-20): \u201cskipping: simplify xfail handling during call phase\u201d\n\n   Blame confirms that the relevant caching logic was introduced by `c9737ae91`:\n\n   ```python\n   xfailed = item._store.get(xfailed_key, None)\n   if xfailed is None:\n       item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)\n   ```\n\n   Setup always stores the initial evaluation result, including `None`. Therefore, a marker added inside the test cannot be detected during the call phase because the cached `None` is indistinguishable from \u201cnot evaluated yet\u201d and prevents reevaluation after `request.node.add_marker(mark)`. The file directly contains the regression and is clearly the primary candidate.\n\n2. `src/_pytest/nodes.py` \u2014 **Unlikely.** Its recent history contains only unrelated changes, primarily type cleanup and a fix for strings being stored in `Node.keywords` instead of `MarkDecorator`. No recent commit corresponds to dynamic marker application or xfail handling. The candidate\u2019s `Node.add_marker()` behavior appears to preserve dynamically added markers, so the history does not support it as the source of this regression.\n\n3. `src/_pytest/fixtures.py` \u2014 **Unlikely.** Recent changes are merges, type annotations, documentation links, package-scope cleanup, and unrelated Windows behavior. No relevant recent change affects `FixtureRequest.applymarker()`. Its delegation to `self.node.add_marker(marker)` is not implicated; the stale xfail evaluation cache is downstream of this API.\n\n4. `src/_pytest/mark/structures.py` \u2014 **Least likely.** Recent history concerns type annotations, callable built-in marks, IDs, and documentation. There is no recent change involving xfail evaluation or dynamically applied markers. Marker construction appears valid, and this file does not control when xfail marks are evaluated."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 25.644317600002978,
+  "prompt_tokens": 95444,
+  "completion_tokens": 1979,
+  "cost_usd": 0.0214636,
+  "instance_id": "astropy__astropy-7746",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/wcs/wcs.py"
+  ],
+  "files": [
+    "astropy/wcs/wcs.py",
+    "astropy/wcs/src/wcslib_wrap.c",
+    "cextern/wcslib/C/wcs.c"
+  ],
+  "reasoning": "astropy/wcs/wcs.py is the strongest candidate because the traceback reaches _array_converter, whose _return_list_of_arrays unconditionally passes the empty (0, 2) coordinate array to self.wcs.p2s; the likely fix is to short-circuit empty inputs there. astropy/wcs/src/wcslib_wrap.c is the next most relevant boundary, since it derives ncoord and nelem and passes them to wcsp2s. cextern/wcslib/C/wcs.c contains wcsp2s and the exact error, but is less likely to be the appropriate modification point because the behavior can probably be handled in Astropy before calling the vendored library.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `astropy/wcs/wcs.py` \u2014 **Very high confidence.** This is the direct product-code path named in the traceback: `wcs_pix2world()` delegates to `_array_converter()`, which broadcasts the empty input arrays, constructs an empty `(0, 2)` coordinate array, and unconditionally calls `self.wcs.p2s(...)`. I am unsure whether the correct fix belongs entirely in this Python converter or should instead bypass the low-level call for zero-row inputs.\n\n2. `astropy/wcs/src/wcslib_wrap.c` \u2014 **High confidence.** This is the native wrapper invoked by `self.wcs.p2s`; it derives `ncoord` and `nelem` from the input array and passes them directly to `wcsp2s()`, matching the reported `ncoord and/or nelem inconsistent with the wcsprm` error. I am unsure whether the wrapper should accept zero coordinates and return empty arrays, or whether Python should avoid invoking it for empty inputs.\n\n3. `cextern/wcslib/C/wcs.c` \u2014 **Medium confidence.** This contains `wcsp2s()` and the exact reported error text, so it is the origin of the failure once the empty array reaches wcslib. I am unsure whether modifying vendored wcslib is appropriate, since the issue may be intended to be handled by Astropy\u2019s wrapper layer."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. **astropy/wcs/wcs.py** \u2014 **High confidence**\n\n   This is the primary suspect. The reported traceback runs directly through `WCS._array_converter`, specifically `_return_list_of_arrays`:\n\n   - The two empty input lists are converted to empty NumPy arrays.\n   - They are broadcast and stacked into an empty `(0, 2)` array.\n   - The code unconditionally calls `self.wcs.p2s(xy, origin)`.\n   - wcslib rejects the zero-coordinate input with `InconsistentAxisTypesError`.\n\n   The relevant implementation is in `astropy/wcs/wcs.py`, lines 1214\u20131231 and 1245\u20131269. The suspicious lines were last changed by the old coordinate-conversion implementation commit `43ac71dd28c` from 2013, while the `_array_converter` definition was most recently touched by `f9f50874b1` on 2017-10-07 for keyword-only arguments. Recent history shows additional changes to this file, but none specifically addressing empty inputs. The fix most likely belongs in `_return_list_of_arrays`, before calling the transformation function, returning correctly shaped empty arrays instead.\n\n2. **astropy/wcs/setup_package.py** \u2014 **Low confidence**\n\n   Recent history includes multiple wcslib upgrades, especially:\n\n   - `baa30c0130` \u2014 2018-07-28 \u2014 \u201cupdate wcslib to 5.19.1\u201d\n   - `a3d116407f` \u2014 2018-01-10 \u2014 \u201cupdate wcslib to 5.18\u201d\n   - `372f20b219` \u2014 2017-12-14 \u2014 \u201cupdate wcslib to v 5.17\u201d\n\n   These changes make the wcslib boundary worth considering because the exception originates in `wcslib`\u2019s `wcsp2s`, but the Python wrapper currently passes a zero-row coordinate array without special handling. The history provides no evidence that `setup_package.py` itself introduced the behavior, so it is considerably less likely than `astropy/wcs/wcs.py`.\n\n3. **astropy/wcs/src** \u2014 **Very low confidence**\n\n   The directory has recent commits related to C-extension maintenance and wcslib behavior, including Python-version cleanup and an older bounds-checking change. However, the reported failure is caused by the wrapper invoking wcslib with an empty coordinate array. No recent source-directory commit specifically concerns empty coordinate handling or `wcsp2s` argument validation. No product source file inside this directory is supported strongly enough by history to replace `astropy/wcs/wcs.py` as the leading candidate."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "1. **astropy/wcs/wcs.py** \u2014 **Very high confidence**  \n   The fault originates in `_array_converter`, specifically `_return_list_of_arrays`. Empty coordinate arrays are broadcast and combined into an array with shape `(0, 2)`, then passed directly to `self.wcs.p2s(xy, origin)`. The underlying wcslib routine rejects the zero-coordinate input with `InconsistentAxisTypesError` instead of returning an empty result. This is the implementation layer where empty-array handling must be added, likely by short-circuiting before calling wcslib and constructing correctly shaped empty outputs.\n\n2. **astropy/wcs/__init__.py** \u2014 **Low confidence / not the fault location**  \n   This module imports and exposes `astropy/wcs/wcs.py`, so it is part of the public import path for `from astropy.wcs import WCS`. It contains no transformation logic and only exposes the faulty implementation; the failure does not originate here."
+    }
+  ]
+}

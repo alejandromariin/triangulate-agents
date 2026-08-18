@@ -1,0 +1,34 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 60.752747900027316,
+  "prompt_tokens": 108642,
+  "completion_tokens": 1212,
+  "cost_usd": 0.023182800000000003,
+  "instance_id": "psf__requests-3362",
+  "repo": "psf/requests",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "requests/utils.py"
+  ],
+  "files": [
+    "requests/models.py",
+    "requests/utils.py"
+  ],
+  "reasoning": "requests/models.py is the primary fault location: iter_content(decode_unicode=True) passes chunks to stream_decode_response_unicode() without selecting a fallback encoding, while the text property explicitly falls back to apparent_encoding when self.encoding is unset. requests/utils.py contains the implementation that leaves chunks unchanged when response.encoding is None, causing bytes to be returned; it is the underlying helper rather than merely a caller.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `requests/models.py` \u2014 Most suspicious. `Response.iter_content()` passes chunks through `stream_decode_response_unicode()` when `decode_unicode=True`, while `Response.text` explicitly decodes `self.content`; the behavior hinges on whether `self.encoding` is set. I am unsure whether the reported `application/json` response lacked a charset, because this method intentionally leaves chunks as bytes when `r.encoding is None`.\n\n2. `requests/utils.py` \u2014 Directly controls the disputed behavior through `stream_decode_response_unicode()`: if `r.encoding` is `None`, it yields the original byte chunks unchanged; otherwise it incrementally decodes them to text. I am unsure whether this fallback is intentional for JSON responses or the specific defect being reported."
+    },
+    {
+      "role": "History investigator",
+      "output": "requests/models.py \u2014 Ranked first. Recent history shows multiple changes in the surrounding response behavior, including the 2016 JSON-encoding fixes (`386382b1`, `9ff2e43c`, `52c0daff`, and `cb4c2c0b`), although those changes concern encoding JSON request bodies rather than response iteration. The relevant `iter_content()` logic itself has not changed recently: blame traces it to 2011\u20132014, while `text` explicitly falls back to `apparent_encoding` when `self.encoding` is unset. Thus the reported mismatch is confirmed in this file: `iter_content(decode_unicode=True)` delegates to the helper without selecting a fallback encoding, whereas `r.text` does select one.\n\nrequests/utils.py \u2014 Ranked second. It directly implements the behavior: `stream_decode_response_unicode()` has returned raw chunks unchanged whenever `r.encoding is None` since the 2011 commit `6421ec178`; only an explicitly set encoding triggers incremental decoding. Its recent history contains no relevant changes\u2014the latest commits concern proxy handling and utility tests\u2014so it is the clearest implementation location but not a recent regression candidate. The helper\u2019s longstanding fallback explains why JSON responses lacking a charset produce bytes from `iter_content(..., decode_unicode=True)` while `.text` returns Unicode."
+    }
+  ]
+}

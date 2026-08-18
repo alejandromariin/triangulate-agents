@@ -1,0 +1,30 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 19.054145400004927,
+  "prompt_tokens": 16487,
+  "completion_tokens": 694,
+  "cost_usd": 0.0041302,
+  "instance_id": "django__django-11179",
+  "repo": "django/django",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "django/db/models/deletion.py"
+  ],
+  "files": [
+    "django/db/models/deletion.py"
+  ],
+  "reasoning": "The bug is localized to the fast-delete optimization in django/db/models/deletion.py. That branch returns immediately after deleting the database row, bypassing the normal code that sets collected instances\u2019 primary keys to None.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for the deletion collector implementation and the code around Django.db.models.deletion lines corresponding to clearing PKs. Identify the exact product-code file(s) implicated and report exact repository-relative paths, with relevant evidence.",
+      "output": "The implicated product-code file is:\n\n- `django/db/models/deletion.py`\n\nRelevant evidence:\n\n- `django/db/models/deletion.py:63` defines the deletion collector:\n  ```python\n  class Collector:\n  ```\n- `django/db/models/deletion.py:262` defines `Collector.delete()`:\n  ```python\n  def delete(self):\n  ```\n- The reported optimization is at `django/db/models/deletion.py:274-280`:\n  ```python\n  # Optimize for the case with a single obj and no dependencies\n  if len(self.data) == 1 and len(instances) == 1:\n      instance = list(instances)[0]\n      if self.can_fast_delete(instance):\n          with transaction.mark_for_rollback_on_error():\n              count = sql.DeleteQuery(model).delete_batch([instance.pk], self.using)\n          return count, {model._meta.label: count}\n  ```\n  This early return bypasses the normal post-deletion PK-clearing code.\n\n- The normal deletion path clears collected instances\u2019 primary keys at `django/db/models/deletion.py:324-326`:\n  ```python\n  for model, instances in self.data.items():\n      for instance in instances:\n          setattr(instance, model._meta.pk.attname, None)\n  ``Therefore, the exact product-code file implicated by the bug report is:\n\n```text\ndjango/db/models/deletion.py\n```\n\nNo other product-code file is required to implement the reported fix; the issue is localized to the fast-delete early-return branch in this file, which should update the deleted instance\u2019s PK before returning."
+    }
+  ]
+}

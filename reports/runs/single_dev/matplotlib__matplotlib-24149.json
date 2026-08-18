@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 16.377999200019985,
+  "prompt_tokens": 29032,
+  "completion_tokens": 430,
+  "cost_usd": 0.006322400000000001,
+  "instance_id": "matplotlib__matplotlib-24149",
+  "repo": "matplotlib/matplotlib",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "lib/matplotlib/axes/_axes.py"
+  ],
+  "files": [
+    "lib/matplotlib/axes/_axes.py",
+    "lib/matplotlib/cbook/__init__.py"
+  ],
+  "reasoning": "The traceback follows Axes.bar in lib/matplotlib/axes/_axes.py to _convert_dx(), where both x0 and the converted x array are passed to cbook._safe_first_finite(). For an all-NaN x input, _safe_first_finite() in lib/matplotlib/cbook/__init__.py uses next() with no fallback and raises StopIteration. These two product files contain the directly implicated conversion and finite-element helper logic; the recent bar fix also touched both files.",
+  "stages": []
+}

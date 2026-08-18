@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 13.69782000000123,
+  "prompt_tokens": 51803,
+  "completion_tokens": 370,
+  "cost_usd": 0.010804600000000001,
+  "instance_id": "pallets__flask-4045",
+  "repo": "pallets/flask",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/flask/blueprints.py"
+  ],
+  "files": [
+    "src/flask/blueprints.py"
+  ],
+  "reasoning": "The blueprint constructor in src/flask/blueprints.py assigns self.name directly without validating dots. The same file already rejects dots in blueprint endpoint names in add_url_rule, and nested blueprint registration uses dots to construct hierarchical names, so the blueprint name validation belongs in this product file.",
+  "stages": []
+}

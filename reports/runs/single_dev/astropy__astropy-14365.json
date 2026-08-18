@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 18.76708590000635,
+  "prompt_tokens": 30444,
+  "completion_tokens": 241,
+  "cost_usd": 0.006378,
+  "instance_id": "astropy__astropy-14365",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "reasoning": "The QDP parser and its command-recognition regular expression are implemented in astropy/io/ascii/qdp.py. The case-sensitive `_command_re` at line 63 only matches uppercase `READ`, `SERR`, and `TERR`, causing lowercase commands to be rejected before the existing command parsing logic can process them. This file is therefore the required product-code change location.",
+  "stages": []
+}

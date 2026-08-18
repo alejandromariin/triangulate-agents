@@ -1,0 +1,26 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 21.087460700015072,
+  "prompt_tokens": 46746,
+  "completion_tokens": 419,
+  "cost_usd": 0.009852,
+  "instance_id": "mwaskom__seaborn-3190",
+  "repo": "mwaskom/seaborn",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "seaborn/_core/scales.py"
+  ],
+  "files": [
+    "seaborn/_core/scales.py",
+    "seaborn/_core/properties.py",
+    "seaborn/_core/rules.py"
+  ],
+  "reasoning": "The traceback identifies seaborn/_core/scales.py, where ContinuousBase._setup computes the normalized span with boolean values and triggers unsupported boolean subtraction. seaborn/_core/properties.py explicitly classifies variables using variable_type(data, boolean_type=\"numeric\"), causing boolean color data to select Continuous rather than Nominal. The underlying boolean classification is implemented in seaborn/_core/rules.py, so these are the product-code files most directly involved in correcting boolean scale inference and/or conversion.",
+  "stages": []
+}

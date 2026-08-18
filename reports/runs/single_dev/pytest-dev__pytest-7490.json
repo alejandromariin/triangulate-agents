@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 42.392512599995825,
+  "prompt_tokens": 68425,
+  "completion_tokens": 338,
+  "cost_usd": 0.0140906,
+  "instance_id": "pytest-dev__pytest-7490",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/skipping.py"
+  ],
+  "files": [
+    "src/_pytest/skipping.py"
+  ],
+  "reasoning": "The xfail marker is dynamically added during test execution, but src/_pytest/skipping.py caches the xfail evaluation during pytest_runtest_setup and only reevaluates it during pytest_runtest_call when the cached value is None. A marker added by a fixture before the test body therefore leaves the cached value stale, so the failing call is not converted to an xfailed report. The fix belongs in the xfail evaluation/reporting flow in this product file.",
+  "stages": []
+}

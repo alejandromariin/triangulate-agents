@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 11.687814600009006,
+  "prompt_tokens": 51804,
+  "completion_tokens": 380,
+  "cost_usd": 0.010816800000000001,
+  "instance_id": "mwaskom__seaborn-3407",
+  "repo": "mwaskom/seaborn",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "seaborn/axisgrid.py"
+  ],
+  "files": [
+    "seaborn/axisgrid.py"
+  ],
+  "reasoning": "The reported traceback enters `pairplot` in `seaborn/axisgrid.py`, which constructs `PairGrid` and then calls `map_diag`. The MultiIndex failure occurs in `PairGrid.map_diag` when it accesses `self.data[var]`: `_find_numeric_cols` iterates over MultiIndex columns, but pandas returns a level value such as `'1'` for the selected variable, which is not a complete MultiIndex column key. The relevant product code for fixing variable discovery and/or diagonal column access is contained in this file.",
+  "stages": []
+}

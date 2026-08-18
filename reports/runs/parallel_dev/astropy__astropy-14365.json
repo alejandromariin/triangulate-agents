@@ -1,0 +1,37 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 18.45029110001633,
+  "prompt_tokens": 73422,
+  "completion_tokens": 1747,
+  "cost_usd": 0.016780800000000002,
+  "instance_id": "astropy__astropy-14365",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "reasoning": "This is the direct product-code implementation of the QDP reader and contains the exact failure. Its _line_type() function uses the case-sensitive regex `READ [TS]ERR(\\s+[0-9]+)+`, so `read serr 1 2` is rejected before later parsing logic normalizes the command with `.lower()`. The fix belongs here, likely by making command recognition case-insensitive or normalizing the input before matching.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "Candidate files, most suspicious first:\n\n1. `astropy/io/ascii/qdp.py` \u2014 **Very high confidence.** The `_line_type()` function defines `_command_re = r\"READ [TS]ERR(\\s+[0-9]+)+\"` at line 63, which matches only uppercase `READ`, `SERR`, and `TERR`; consequently `read serr 1 2` reaches the `ValueError(\"Unrecognized QDP line: ...\")` at line 78. The later parsing logic already lowercases the command kind (`command[1].lower()` at line 300), so the uncertainty is limited to whether command recognition should be made case-insensitive in `_line_type()` or normalized before matching."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. **astropy/io/ascii/qdp.py** \u2014 **Very high confidence**\n\n   This is the direct product-code implementation of the QDP reader and contains the exact failure:\n\n   - `_line_type()` defines the command regex as:\n     ```python\n     _command_re = r\"READ [TS]ERR(\\s+[0-9]+)+\"\n     ```\n     Because the regex is compiled without `re.IGNORECASE`, lowercase commands such as `read serr 1 2` are rejected.\n   - The relevant regex was last changed on **2022-11-08** by commit `6e80e68e817` (`[black] Allow \\`black\\` to run on \\`astropy.io.ascii\\``). That change appears formatting-related, not a deliberate QDP behavior change, but it is the most recent commit touching the faulty line.\n   - The surrounding QDP implementation was introduced by commit `6553e7214f` on **2021-01-18** (`Add QDP data file handling`), and later modified by `68d02b775a` (`Make read compatible with all formats accepted by Astropy`) and the 2022 formatting commit.\n   - The downstream parser already lowercases the command type:\n     ```python\n     err_specs[command[1].lower()] = ...\n     ```\n     This supports the conclusion that case-insensitive commands were intended or at least naturally supported after recognition; the failure occurs specifically at command classification in `_line_type()`.\n\n   The likely fix belongs in this file, either by compiling the command-matching regex with `re.IGNORECASE` or by making the command pattern case-insensitive. **Confidence: very high.**\n\n2. **astropy/io/ascii** \u2014 **High confidence as the relevant nearby directory, but not an additional file**\n\n   Recent directory history shows several formatting and lint commits in January\u2013March 2023, but no product-code commit specifically addressing QDP parsing or command case handling. The QDP implementation remains the only clearly relevant product file identified by the directory history.\n\n   The directory history does not point to another stronger suspect. **Confidence: high.**\n\n3. **astropy/io/ascii/core.py** \u2014 **Very low confidence / should be dropped**\n\n   This is a central ASCII-table implementation file, but its recent history consists of general lint, formatting, and compatibility changes. The reported exception is raised directly by `astropy/io/ascii/qdp.py`, and the case-sensitive command regex is located there. No history or source evidence connects `core.py` to this bug, so it should not be retained as a candidate."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "astropy/io/ascii/qdp.py \u2014 **Primary culprit; very high confidence.** `_line_type()` defines `_command_re = r\"READ [TS]ERR(\\s+[0-9]+)+\"`, which only matches uppercase `READ`, `SERR`, and `TERR`. Consequently, lowercase QDP commands are rejected before the later parsing logic can normalize command names with `.lower()`. The fix belongs here, likely by making the command regular expression case-insensitive or normalizing the input before matching.\n\nastropy/io/ascii/__init__.py \u2014 **Integration/registration point; low confidence as the fault location.** This module imports and exposes `QDP`, but it does not perform QDP command parsing. It is only the format-registration path through which `Table.read(..., format=\"ascii.qdp\")` reaches `astropy/io/ascii/qdp.py`.\n\nastropy/table/__init__.py \u2014 **Caller/API surface; very low confidence as the fault location.** `Table.read()` dispatches to the registered ASCII QDP reader, but the reported failure occurs inside the QDP-specific line classifier. No change should be made here."
+    }
+  ]
+}

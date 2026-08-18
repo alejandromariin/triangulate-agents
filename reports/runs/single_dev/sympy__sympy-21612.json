@@ -1,0 +1,25 @@
+{
+  "hit@1": 0,
+  "hit@3": 0,
+  "hit@5": 0,
+  "rr": 0.0,
+  "rank": null,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 15.850187300005928,
+  "prompt_tokens": 70306,
+  "completion_tokens": 390,
+  "cost_usd": 0.0145292,
+  "instance_id": "sympy__sympy-21612",
+  "repo": "sympy/sympy",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sympy/printing/str.py"
+  ],
+  "files": [
+    "sympy/parsing/latex/_parse_latex_antlr.py",
+    "sympy/parsing/latex/LaTeX.g4"
+  ],
+  "reasoning": "The fraction conversion is implemented in sympy/parsing/latex/_parse_latex_antlr.py, where convert_frac constructs the denominator inverse and currently permits nested fraction expressions to associate incorrectly. The grammar defining fraction operands is in sympy/parsing/latex/LaTeX.g4; it may need adjustment so nested fraction operands retain the required grouping.",
+  "stages": []
+}

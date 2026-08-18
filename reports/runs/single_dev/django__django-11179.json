@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 17.216441299999133,
+  "prompt_tokens": 43345,
+  "completion_tokens": 258,
+  "cost_usd": 0.0089786,
+  "instance_id": "django__django-11179",
+  "repo": "django/django",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "django/db/models/deletion.py"
+  ],
+  "files": [
+    "django/db/models/deletion.py"
+  ],
+  "reasoning": "The bug is directly in the fast-delete optimization at django/db/models/deletion.py lines 274-280. For a single model instance with no dependencies, this branch executes DeleteQuery.delete_batch() and returns immediately, bypassing the later code at lines 324-326 that sets each deleted instance\u2019s primary key to None. This file must be modified so the fast-delete branch clears the instance PK before returning.",
+  "stages": []
+}

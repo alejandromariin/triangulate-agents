@@ -1,0 +1,39 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 24.046507699997164,
+  "prompt_tokens": 123940,
+  "completion_tokens": 2343,
+  "cost_usd": 0.0275996,
+  "instance_id": "pytest-dev__pytest-6116",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/main.py"
+  ],
+  "files": [
+    "src/_pytest/main.py",
+    "src/_pytest/config/argparsing.py",
+    "src/_pytest/config/__init__.py"
+  ],
+  "reasoning": "src/_pytest/main.py is the strongest target: it directly registers `--collectonly` and `--collect-only`, so the one-character alias belongs alongside those option names. src/_pytest/config/argparsing.py is a supporting location because it implements short-option parsing and compatibility behavior, but it does not define this option and likely needs no change. src/_pytest/config/__init__.py is a weaker orchestration-layer candidate because it constructs and invokes the parser without defining the collection option.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "src/_pytest/main.py \u2014 **Most suspicious; high confidence.** This is the product-code definition of pytest\u2019s collection options, including both `--collectonly` and `--collect-only`; adding a one-character alias would most directly involve this `group.addoption(...)` declaration. I am unsure which shortcut character the report\u2019s author intended, and whether compatibility or collisions with existing options would constrain the choice.\n\nsrc/_pytest/config/argparsing.py \u2014 **High confidence.** This implements pytest\u2019s command-line option registration and parsing, including handling of short options and the restriction that lowercase short options are reserved for internal options. It is relevant if introducing a one-character alias requires parser behavior or validation changes, although the existing option declaration may be sufficient without modifying this file.\n\nsrc/_pytest/terminal.py \u2014 **Medium confidence.** This product file checks `config.getoption(\"collectonly\")` while producing terminal output, so it is part of the runtime behavior controlled by `--collect-only`. I am unsure whether an alias would require any changes here; normally argparse maps aliases to the same destination and this code would remain unchanged.\n\nsrc/_pytest/logging.py \u2014 **Low confidence.** This file branches on `session.config.option.collectonly`, linking it to collection-only execution and logging behavior. I am unsure that it needs modification, since a new CLI alias should populate the existing `collectonly` option identically.\n\nsrc/_pytest/pytester.py \u2014 **Low confidence.** This helper invokes collection-only mode using the long option and documents the corresponding API behavior. It connects to the report\u2019s exact command, but it is product support code rather than the option definition, and I am unsure whether the alias should be added to this helper or merely tested externally."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `src/_pytest/main.py` \u2014 **Very high confidence.** This is the direct product-code implementation of pytest\u2019s collection command-line options. The relevant option is defined at lines 109\u2013114:\n\n   ```python\n   group.addoption(\n       \"--collectonly\",\n       \"--collect-only\",\n       action=\"store_true\",\n       help=\"only collect tests, don't execute them.\",\n   ),\n   ```\n\n   The option has not changed recently: `git blame` attributes the entire declaration to commit `703e4b11ba` from 2018-05-23. However, the requested one-character shortcut would be added exactly here, alongside the existing `--collectonly` and `--collect-only` aliases. The recent history of `src/_pytest/main.py` is active, including collection-related changes on 2019-11-02 and 2019-11-06, but those changes concern collection execution rather than option parsing.\n\n2. `src/_pytest/config/argparsing.py` \u2014 **High confidence as a nearby supporting file, low confidence as the primary change location.** This file implements pytest\u2019s custom command-line option registration and delegates registered names to argparse. Its recent history includes:\n\n   - `9021194ef` (2019-06-29): workaround for multiple short options on Python \u2264 3.8\n   - `d72fb73fa` (2019-06-25): disallow abbreviated arguments\n\n   Those commits make this file relevant to short-option behavior and compatibility. Nevertheless, it does not define the `--collect-only` option, so the requested alias should be added in `src/_pytest/main.py`, not here. No tests are included in this candidate.\n\n3. `src/_pytest/config/__init__.py` \u2014 **Medium confidence as surrounding command-line infrastructure, low confidence as the primary suspect.** This file owns configuration initialization and parser setup, and its directory has recent changes related to plugin option registration and parsing, including `74f4ec598` and `7a96d94fd` in late October/early November 2019. The file itself does not define the collection option, so history does not support changing it for this bug.\n\n4. `src/_pytest/helpconfig.py` \u2014 **Low confidence.** This product file defines built-in help and debugging options and formats command-line help. Its most recent substantive option-related history is older (`b2ce6f320`, 2019-04-11, improving ini-option help). It is relevant only insofar as adding a short alias in `src/_pytest/main.py` will automatically make the alias appear in generated help; no direct change is indicated here."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "1. `src/_pytest/main.py` \u2014 **Highest confidence.** This is the product-code origin of the requested shortcut. Its `pytest_addoption` function registers the collection options, including `--collectonly` and `--collect-only`; the one-character alias should be added here alongside those option names.\n\n2. `src/_pytest/config/argparsing.py` \u2014 **High confidence.** This is the command-line parsing dependency used by `Config` and ultimately by pytest\u2019s CLI. It already supports short option names generically, so it is where the shortcut would be parsed, but it does not define the collection option and is not the appropriate place to add its alias.\n\n3. `src/_pytest/config/__init__.py` \u2014 **Medium confidence.** `Config.__init__` constructs the `Parser`, and `pytest_cmdline_parse` invokes parsing, so this is part of the call path where the behavior appears. However, it contains no collection-option definition and is only the caller/orchestration layer, not the fault location."
+    }
+  ]
+}

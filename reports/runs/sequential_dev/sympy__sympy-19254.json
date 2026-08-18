@@ -1,0 +1,34 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 28.17805170000065,
+  "prompt_tokens": 40151,
+  "completion_tokens": 1411,
+  "cost_usd": 0.009723400000000002,
+  "instance_id": "sympy__sympy-19254",
+  "repo": "sympy/sympy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "sympy/polys/factortools.py"
+  ],
+  "files": [
+    "sympy/polys/factortools.py",
+    "sympy/polys/compatibility.py"
+  ],
+  "reasoning": "sympy/polys/factortools.py is the primary fault location: it directly implements dup_zz_mignotte_bound and dmp_zz_mignotte_bound using the Mignotte expression, and its multivariate Wang-factorization code consumes the latter to select the modulus threshold. Replacing the bound calculations here addresses both univariate and multivariate behavior. sympy/polys/compatibility.py only imports and exposes these functions, so it is an affected API layer rather than the origin of the fault.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "Candidate files, most suspicious first:\n\n1. `sympy/polys/factortools.py` \u2014 Defines both `dup_zz_mignotte_bound(f, K)` and `dmp_zz_mignotte_bound(f, u, K)` at lines 126\u2013141, currently implementing the Mignotte formula using `dup_max_norm`/`dmp_max_norm`, leading coefficients, and degree. This is the primary implementation targeted by the report. I am unsure of the exact Knuth\u2013Cohen formula and whether its multivariate form should use the same total-degree and norm inputs.\n\n2. `sympy/polys/factortools.py` \u2014 The multivariate Wang factorization routine calls `dmp_zz_mignotte_bound(f, u, K)` at line 936 to choose the prime modulus for factorization. This is the direct downstream performance-sensitive use for the reported multivariate improvement. I am unsure whether changing only the bound function is sufficient or whether the modulus-selection logic also needs adjustment for the new bound.\n\n3. `sympy/polys/compatibility.py` \u2014 Imports both bound functions at lines 159\u2013160 and exposes them through `IPolys.dup_zz_mignotte_bound()` and `IPolys.dmp_zz_mignotte_bound()` at lines 731\u2013734. This is the product-code compatibility layer that preserves the public polynomial-ring methods. I am unsure whether the API names should remain \u201cmignotte\u201d while changing their implementation, or whether new Knuth\u2013Cohen-named methods are expected."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `sympy/polys/factortools.py` \u2014 Strongest candidate. The relevant bound implementations and their multivariate use are both in this product-code file. However, history shows that `dup_zz_mignotte_bound` and `dmp_zz_mignotte_bound` themselves have been essentially unchanged since their original introduction in commit `31c9aa43ffc` (2009-04-30), apart from a formula edit in `1e993dc45d3` (2012-10-20). Recent commits touching the file are unrelated cleanup, import, documentation, and factoring fixes. The code confirms that the univariate function uses the Mignotte expression `sqrt(n + 1) * 2**n * max_norm * abs(LC)`, while the multivariate function uses the summed degree list and analogous norm/leading-coefficient inputs. This is still the correct implementation target for replacing the bound, but its history does not indicate a recent regression.\n\n2. `sympy/polys/factortools.py` \u2014 Same file, specifically the Wang-factorization downstream call. The call at line 936, last changed in the original 2009 implementation, computes the multivariate bound and passes `nextprime(b)` as the modulus threshold. History shows no recent change to this modulus-selection logic; nearby recent changes are unrelated. The report\u2019s multivariate performance concern therefore points here as an affected consumer, but the history supports changing the bound function rather than adding a separate newer suspect or treating this call as an independent regression.\n\n3. `sympy/polys/compatibility.py` \u2014 Weakest candidate. The wrapper methods and imports were introduced with the compatibility API in 2013 and have not had recent substantive changes. The only later relevant history is old cleanup/removal of unused imports and coverage/LGTM work; nothing suggests a defect in delegation. The file merely exposes the existing APIs, so the historical evidence supports retaining the `mignotte` method names while changing their underlying implementation, unless a separate API addition is explicitly required."
+    }
+  ]
+}

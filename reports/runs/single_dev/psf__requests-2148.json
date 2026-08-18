@@ -1,0 +1,25 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 12.1586171000381,
+  "prompt_tokens": 38595,
+  "completion_tokens": 336,
+  "cost_usd": 0.0081222,
+  "instance_id": "psf__requests-2148",
+  "repo": "psf/requests",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "requests/models.py"
+  ],
+  "files": [
+    "requests/packages/urllib3/response.py",
+    "requests/models.py"
+  ],
+  "reasoning": "The traceback occurs while lazily reading response content through Response.iter_content(), which delegates to urllib3.response.HTTPResponse.stream()/read(). HTTPResponse.read() wraps SocketTimeout, SSL, and HTTPException but does not catch socket.error, allowing connection resets during response-body reads to escape. requests/models.py is the caller-side streaming layer where urllib3 read exceptions are translated into requests exceptions, but it currently only handles IncompleteRead and DecodeError.",
+  "stages": []
+}

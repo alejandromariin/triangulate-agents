@@ -1,0 +1,37 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 5,
+  "bare_names": 0,
+  "seconds": 29.358058299985714,
+  "prompt_tokens": 56567,
+  "completion_tokens": 1769,
+  "cost_usd": 0.0134362,
+  "instance_id": "pytest-dev__pytest-6116",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/main.py"
+  ],
+  "files": [
+    "src/_pytest/main.py",
+    "src/_pytest/config/argparsing.py",
+    "src/_pytest/terminal.py",
+    "src/_pytest/logging.py",
+    "src/_pytest/pytester.py"
+  ],
+  "reasoning": "The fault belongs primarily in src/_pytest/main.py: it registers --collectonly and --collect-only, and the existing collectonly destination already controls collection-only execution. src/_pytest/config/argparsing.py supports short option names and forwards registered aliases to argparse, so no parser change is needed. The remaining files are downstream consumers or test-support infrastructure and would automatically use the existing collectonly value when a short alias is added.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `src/_pytest/main.py` \u2014 Most suspicious. It defines the `--collectonly`/`--collect-only` command-line option and controls the behavior that stops execution after collection, so adding a one-character shortcut would most directly involve this file. I am unsure which shortcut character should be assigned and whether the project\u2019s option conventions would require using `_addoption` rather than `addoption`.\n\n2. `src/_pytest/config/argparsing.py` \u2014 Directly relevant to registering and parsing command-line options, including short options and restrictions on lowercase short options. It determines whether a one-character alias can be added and how it appears in help output. I am unsure whether parser changes are needed at all, since the existing option-registration API may already support the requested alias.\n\n3. `src/_pytest/terminal.py` \u2014 Uses the `collectonly` configuration value to print collected items and collection failures. This confirms the option\u2019s downstream terminal behavior, but it likely would not need modification if a shortcut maps to the existing destination.\n\n4. `src/_pytest/logging.py` \u2014 Checks `session.config.option.collectonly` to suppress live logging during collection-only runs. This is connected to the option\u2019s runtime semantics, but no change appears necessary because an alias would populate the same option value.\n\n5. `src/_pytest/pytester.py` \u2014 Provides the `inline_genitems` helper, which invokes `--collect-only` and documents the collection-only mode. It is related to internal invocation of the long option, but it is product support infrastructure rather than the command-line definition, and likely would not need modification unless the shortcut were intended to replace or be documented alongside this usage."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `src/_pytest/main.py` \u2014 **Strongest candidate.** The file directly registers `--collectonly` and `--collect-only` at lines 108\u2013114, with the existing `store_true` action and the `collectonly` destination used by pytest\u2019s collection-only execution path. Git blame shows this option definition dates to commit `703e4b11ba` from 2018-05-23 and has not been recently changed. Recent history for the file is instead concentrated on collection internals (`_perform_collect`, session collection, and related fixes), so the file is functionally the correct implementation point but its option-definition lines are not a recent regression suspect. It uses `group.addoption`, which is appropriate for this collection option; no parser change appears necessary to add a short alias.\n\n2. `src/_pytest/config/argparsing.py` \u2014 **Relevant supporting candidate, but not the likely change location.** Its documentation explicitly says option names may be short or long, and `_getparser` forwards all registered names to argparse. Recent history includes `9021194ef` (2019-06-29), which fixed a workaround for multiple short options on Python versions up to 3.8, and `d72fb73fa` (2019-06-25), which disabled abbreviated long arguments. These changes confirm short-option handling is parser-supported, but they do not indicate a need to modify this file for a one-character alias. The alias can be registered in `src/_pytest/main.py`.\n\n3. `src/_pytest/terminal.py` \u2014 **Downstream behavior only; no change indicated.** Its recent history includes several collection-reporting changes, including collection-error summaries and terminal offset fixes, but nothing suggesting the option parser or `collectonly` configuration value changed. A short alias would populate the same existing option value, so this file should remain unchanged.\n\n4. `src/_pytest/logging.py` \u2014 **Connected runtime consumer; no change indicated.** The file\u2019s history contains commit `577b0dffe` (2019-06-04), \u201cFix verbosity bug in --collect-only,\u201d showing recent attention to collection-only semantics. However, logging only consumes `config.option.collectonly`; an alias registered for the existing option would preserve that value automatically. No modification is supported by the history.\n\n5. `src/_pytest/pytester.py` \u2014 **Weak candidate; no change indicated.** Its recent commits concern type annotations, subprocess/pexpect behavior, and helper cleanup. Although it invokes or documents `--collect-only` through `inline_genitems`, it is test-support infrastructure rather than the product command-line definition. The requested shortcut does not require changing internal uses of the long option.\n\nNo additional product-code file is supported by the available history."
+    }
+  ]
+}

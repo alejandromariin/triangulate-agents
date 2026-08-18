@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 12.743899799999781,
+  "prompt_tokens": 24845,
+  "completion_tokens": 292,
+  "cost_usd": 0.005319399999999999,
+  "instance_id": "pallets__flask-5063",
+  "repo": "pallets/flask",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/flask/cli.py"
+  ],
+  "files": [
+    "src/flask/cli.py"
+  ],
+  "reasoning": "The `flask routes` command is implemented in `src/flask/cli.py`. Its `routes_command` function iterates over URL rules and formats only the `Endpoint`, `Methods`, and `Rule` columns; adding domain/subdomain information requires modifying this product file.",
+  "stages": []
+}

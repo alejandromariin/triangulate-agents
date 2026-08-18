@@ -1,0 +1,41 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 5,
+  "bare_names": 0,
+  "seconds": 16.03818470000988,
+  "prompt_tokens": 101541,
+  "completion_tokens": 2403,
+  "cost_usd": 0.0231918,
+  "instance_id": "pydata__xarray-4248",
+  "repo": "pydata/xarray",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "xarray/core/formatting.py"
+  ],
+  "files": [
+    "xarray/core/formatting.py",
+    "xarray/core/formatting_html.py",
+    "xarray/core/dataset.py",
+    "xarray/core/dataarray.py",
+    "xarray/core/variable.py"
+  ],
+  "reasoning": "xarray/core/formatting.py is the strongest target: it directly constructs the plain-text Dataset overview rows and currently omits var.attrs[\"units\"]. xarray/core/formatting_html.py is a secondary formatting implementation that may need parallel support for rich representations. xarray/core/dataset.py is the Dataset repr integration point but delegates the actual layout. xarray/core/dataarray.py shares the variable-summary infrastructure and may require consistency updates, while xarray/core/variable.py only provides metadata and is least likely to require modification.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "xarray/core/formatting.py \u2014 **Most suspicious; high confidence.** This is the product-code implementation of the plain-text `Dataset` representation: `summarize_variable()` constructs each coordinate/data-variable row, while `dataset_repr()` assembles the \u201cCoordinates\u201d and \u201cData variables\u201d sections. It currently formats only the name, dimensions, dtype, and values, with no lookup or display of `var.attrs[\"units\"]`; I am unsure whether the requested behavior should include only the conventional `\"units\"` attribute or a broader unit mechanism, and whether column-width calculations need adjustment for the added text.\n\nxarray/core/formatting_html.py \u2014 **Highly relevant; medium-high confidence.** This is the product-code implementation of the HTML/Jupyter representation, and `summarize_variable()` separately renders variable names, dimensions, dtype, previews, and expandable attributes. Since `Dataset._repr_html_()` delegates here, the feature may need corresponding HTML support; I am unsure whether the report targets only the shown text repr or expects units in the rich HTML repr as well.\n\nxarray/core/dataset.py \u2014 **Relevant integration point; medium confidence.** `Dataset.__repr__()` delegates directly to `formatting.dataset_repr(self)`, and `_repr_html_()` delegates to `formatting_html.dataset_repr(self)`, making this the Dataset-level entry point for the requested overview. I am unsure whether any change is needed here beyond delegation, since the actual row formatting is implemented in the formatting modules."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. **xarray/core/formatting.py** \u2014 **High confidence**  \n   This is the strongest candidate. It directly implements the text `Dataset` representation, including `coords_repr`, `data_vars_repr`, and the summary assembly where coordinate and variable names are formatted. Its recent history includes formatting-focused changes, notably:\n   - `f281b3b6` (2020-06-24): \u201cLimit length of dataarray reprs\u201d\n   - `2a8cd3b0` (2020-06-23): formatting-related cleanup\n   - `37551da5` (2020-04-24): formatting/code-quality changes  \n   \n   The relevant summary lines themselves are old, last changed in 2019, but this file is the clear product-code location for adding unit text to the plain-text overview. The requested output format changes the formatting of variable names, so this file should be investigated first.\n\n2. **xarray/core/dataset.py** \u2014 **Medium confidence**  \n   This file owns `Dataset.__repr__` and `DataVariables.__repr__`, and imports `formatting`, so it is part of the representation path. However, the actual summary formatting is delegated to `xarray/core/formatting.py`. Recent commits touch this file frequently, including:\n   - `e1dafe67` (2020-08-03): \u201cFix map_blocks example\u201d\n   - `8cea7982` (2020-08-03): `isel` documentation fix\n   - `5200a182` (2020-08-03): map-blocks documentation updates\n   - `03d409ec` (2020-07-02): `from_dataframe` performance improvement  \n   \n   These changes are unrelated to units or repr formatting. Keep it as a nearby integration point, but history provides weaker evidence than for `xarray/core/formatting.py`.\n\n3. **xarray/core/formatting_html.py** \u2014 **Low confidence**  \n   This is product code for the HTML representation and contains `summarize_variable`, which formats coordinate/data-variable names, dimensions, dtypes, previews, and attributes. Its recent history includes:\n   - `f99c6cca` (2020-08-02): \u201cLazily load resource files\u201d\n   - `a64cf2d5` (2020-06-28): \u201cShow data by default in HTML repr for DataArray\u201d\n   - `a2dac231` (2020-06-24): \u201cRemove `<pre>` from nested HTML repr\u201d  \n   \n   The bug report shows the traditional text repr, not HTML, and this file\u2019s recent changes concern HTML behavior rather than units. It could require a parallel update if the feature is intended for both repr modes, but history does not make it the primary suspect."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "1. `xarray/core/formatting.py` \u2014 **Primary fault location; very high confidence.**  \n   Dataset and variable repr formatting is implemented here. In particular, `summarize_variable()` currently builds each line from the marker, name, dimensions, dtype, and values, but never reads or displays `var.attrs[\"units\"]`. `dataset_repr()` delegates coordinate and data-variable rendering to these summarizers, so this is where the requested units must be added.\n\n2. `xarray/core/dataset.py` \u2014 **Caller/integration point; high confidence that it is not the origin.**  \n   `Dataset` imports `formatting` and its repr path ultimately calls `formatting.dataset_repr`. The dataset class supplies coordinates and data variables, but does not itself construct the individual overview lines. It may need no change unless the feature requires altered repr plumbing.\n\n3. `xarray/core/dataarray.py` \u2014 **Related repr caller; medium confidence.**  \n   `DataArray` imports formatting helpers and uses the same variable-summary infrastructure for representations. It is relevant for ensuring consistent unit display, but the reported failure is specifically in the `Dataset` overview and the missing behavior originates in the shared formatter.\n\n4. `xarray/core/variable.py` \u2014 **Data/metadata provider, not the fault; low confidence as a modification target.**  \n   Variables already carry metadata through their `attrs`, so this file provides the units information but does not control Dataset repr layout. No defect relevant to displaying units is evident here."
+    }
+  ]
+}

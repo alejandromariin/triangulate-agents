@@ -1,0 +1,38 @@
+{
+  "hit@1": 0,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 0.5,
+  "rank": 2,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 19.732422399974894,
+  "prompt_tokens": 125948,
+  "completion_tokens": 1883,
+  "cost_usd": 0.0274492,
+  "instance_id": "psf__requests-3362",
+  "repo": "psf/requests",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "requests/utils.py"
+  ],
+  "files": [
+    "requests/models.py",
+    "requests/utils.py"
+  ],
+  "reasoning": "`requests/models.py` is the primary fault location: `Response.iter_content(decode_unicode=True)` delegates to `stream_decode_response_unicode()`, while `Response.text` falls back to `apparent_encoding` when `Response.encoding` is unset. `requests/utils.py` contains that decoder, which explicitly yields the original byte chunks unchanged when `r.encoding is None`; this directly explains why streaming an `application/json` response without a charset can return bytes while `r.text` returns unicode.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `requests/models.py` \u2014 **Most suspicious; high confidence.** This file implements both `Response.iter_content()` and `Response.text`. `iter_content(..., decode_unicode=True)` delegates decoding to `stream_decode_response_unicode()` at lines 697\u2013699, while `text` explicitly decodes `self.content` at lines 757\u2013793. The key uncertainty is that `iter_content()` only produces Unicode when `Response.encoding` is already set; for an `application/json` response without a charset, `encoding` may remain `None`, so the iterator intentionally yields the original byte chunks.\n\n2. `requests/utils.py` \u2014 **Directly involved; high confidence.** `stream_decode_response_unicode()` returns each original item unchanged when `r.encoding is None` (lines 359\u2013365), which directly explains why `decode_unicode=True` can still return bytes. When an encoding is present, it uses an incremental decoder and yields Unicode strings. The uncertainty is whether the reported server response supplied a charset or whether the issue was specifically the absence of one.\n\n3. `requests/models.py` \u2014 **Relevant secondary area; medium confidence.** The `Response.text` property determines an encoding from headers or falls back to `apparent_encoding`, then decodes the complete byte content. This differs from streaming iteration, which does not perform the same fallback detection before decoding. The uncertainty is whether the intended fix belongs in this encoding-selection logic or in the streaming decoder\u2019s behavior when `encoding` is unset."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `requests/models.py` \u2014 **Very high confidence**\n\n   This is the primary suspect. The relevant implementation is in `Response.iter_content()`:\n\n   - `iter_content(..., decode_unicode=True)` obtains byte chunks from `self.raw.stream(...)` or `self.raw.read(...)`.\n   - It then wraps those chunks with `stream_decode_response_unicode(chunks, self)`.\n   - That decoder only decodes when `response.encoding` is set. For an `application/json` response without an explicit charset, `Response.encoding` remains `None`, so the chunks remain bytes.\n   - By contrast, `Response.text` falls back to `self.apparent_encoding` when `self.encoding is None`, then explicitly decodes `self.content`.\n\n   The history supports this file strongly: it was modified very recently by `cf3c9989` on 2016-06-27, only days before the report, although that particular change added `chunk_size` type checking rather than changing decoding. The relevant Unicode streaming logic itself was introduced earlier by `d289eb22f` on 2014-03-04, and the docstring was changed by `c8226f69` on 2014-03-04 to promise decoding using the \u201cbest available encoding.\u201d The implementation and documentation therefore do not fully agree for responses whose encoding is unset. **Very high confidence.**\n\n2. `requests/utils.py` \u2014 **High confidence**\n\n   This file contains the helper used by `iter_content()`\u2014`stream_decode_response_unicode()`\u2014and is therefore directly involved in whether streamed chunks become Unicode. Its recent history is less suspicious than `requests/models.py`: the latest listed changes concern proxy handling and file-length utilities, not response decoding. The helper\u2019s behavior should nevertheless be checked because the reported difference likely arises from its handling of `response.encoding is None`. **High confidence as a nearby implementation dependency; lower confidence as the originating regression.**\n\n3. `requests/packages/urllib3/response.py` \u2014 **Medium confidence**\n\n   This vendored dependency supplies the raw streamed byte chunks consumed by `Response.iter_content()`. Its most recent change was the urllib3 update `f69d8c16` on 2016-04-29. That is relatively recent and predates the report, but the report\u2019s behavior is more directly explained by Requests\u2019 own decoding wrapper: urllib3 is expected to provide bytes, while Requests decides whether and how to decode them. **Medium confidence as a contributing dependency, low confidence as the actual bug source.**\n\n4. `requests/adapters.py` \u2014 **Low confidence**\n\n   This directory-nearby product file controls response creation and transport setup, but its recent history is focused on proxy support, SOCKS support, CA directories, and adapter interface documentation. No recent change relates to response encoding or Unicode iteration. It is unlikely to be responsible for the discrepancy. **Low confidence.**"
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "requests/models.py \u2014 **Primary fault location; high confidence.** `Response.iter_content()` delegates `decode_unicode=True` to `stream_decode_response_unicode()`, but that helper returns the original byte chunks unchanged when `Response.encoding` is `None`. For `application/json` without a charset, `r.text` separately falls back to `apparent_encoding`, while streaming does not. Thus `iter_content(..., decode_unicode=True)` can yield bytes even though `r.text` yields unicode.\n\nrequests/utils.py \u2014 **Contributing dependency; high confidence.** `stream_decode_response_unicode()` explicitly yields bytes unchanged when `r.encoding is None` (lines 362\u2013365), causing the behavior observed through `Response.iter_content()`. The mismatch arises because this helper does not apply the same encoding fallback used by `Response.text`."
+    }
+  ]
+}

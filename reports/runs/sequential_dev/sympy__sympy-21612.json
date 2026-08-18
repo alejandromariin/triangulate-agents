@@ -1,0 +1,34 @@
+{
+  "hit@1": 0,
+  "hit@3": 0,
+  "hit@5": 0,
+  "rr": 0.0,
+  "rank": null,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 47.4928087000153,
+  "prompt_tokens": 89066,
+  "completion_tokens": 1575,
+  "cost_usd": 0.0197032,
+  "instance_id": "sympy__sympy-21612",
+  "repo": "sympy/sympy",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sympy/printing/str.py"
+  ],
+  "files": [
+    "sympy/parsing/latex/_parse_latex_antlr.py",
+    "sympy/parsing/latex/LaTeX.g4"
+  ],
+  "reasoning": "The fault is most likely in convert_frac() in sympy/parsing/latex/_parse_latex_antlr.py: it converts the denominator to an unevaluated inverse and combines it with the numerator using unevaluated multiplication, which loses the grouping needed for a nested fractional denominator and prints as chained division. sympy/parsing/latex/LaTeX.g4 is a secondary candidate because its frac rule supplies complete expressions for both numerator and denominator and permits nested fractions, but the grammar itself preserves the nested structure rather than performing the faulty expression construction.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `sympy/parsing/latex/_parse_latex_antlr.py` \u2014 Most suspicious. This is the product-code converter for LaTeX fractions: `convert_frac()` converts both numerator and denominator and constructs the result using an unevaluated inverse and multiplication. The nested denominator should therefore be represented structurally as `expr_top / expr_bot`; however, SymPy\u2019s later expression printing/canonicalization may expose the constructed multiplication as chained division (`.../1/(c**2)`). I am unsure whether the defect is in this function\u2019s construction or in the parser tree/context supplied for nested `frac` expressions.\n\n2. `sympy/parsing/latex/LaTeX.g4` \u2014 Directly connected to parsing the reported syntax. Its `frac` rule parses `\\frac{...}{...}` with both `upper` and `lower` as `expr`, allowing nested fractions. I am unsure whether the grammar\u2019s expression precedence causes the denominator\u2019s nested fraction to be absorbed into the surrounding multiplicative expression, since the grammar itself appears to permit the required nesting.\n\n3. `sympy/parsing/latex/__init__.py` \u2014 This is the public `parse_latex()` entry point used by the report and delegates parsing to `_parse_latex_antlr.parse_latex`. It is relevant for confirming the active implementation, but contains no fraction-specific logic and is unlikely to be the faulty file."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `sympy/parsing/latex/_parse_latex_antlr.py` \u2014 **Strongest candidate.** The history shows this is the implementation file, but its recent changes were unrelated fixes for logarithm bases, square roots, and multiplication by `-1`; the fraction conversion itself is old. The relevant code converts a fraction denominator to `sympy.Pow(expr_bot, -1, evaluate=False)` and then returns `sympy.Mul(expr_top, inverse_denom, evaluate=False)`. For a nested denominator, this creates a multiplication containing the inverse, allowing SymPy\u2019s expression structure/printing to become a chained division rather than preserving the denominator as a single grouped quotient. The suspicious logic is therefore in `convert_frac()`, especially lines 383\u2013389, despite the lack of a recent fraction-specific commit.\n\n2. `sympy/parsing/latex/LaTeX.g4` \u2014 **Secondary candidate, but history weakens it.** The grammar\u2019s `frac` rule is old and last changed only incidentally in unrelated grammar updates. It explicitly parses both the numerator and denominator as complete `expr` rules:\n\n   `CMD_FRAC L_BRACE upper = expr R_BRACE L_BRACE lower = expr R_BRACE`\n\n   The `comp` and `comp_nofunc` rules also include `frac`, so nested fractions are structurally permitted. The history and the rule itself provide no evidence that the denominator is being absorbed by grammar precedence; the parse tree should contain the nested fraction as `frac.lower`. It is relevant nearby product code, but less likely than the converter.\n\n3. `sympy/parsing/latex/__init__.py` \u2014 **Weakest candidate.** Its history contains only documentation/import-entry-point maintenance, with no recent fraction or parser-expression changes. It merely exposes `parse_latex()` and delegates to `_parse_latex_antlr.parse_latex`; it contains no fraction-specific behavior. No reason to add another file or retain it above the parser implementation."
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 16.930201300012413,
+  "prompt_tokens": 41400,
+  "completion_tokens": 325,
+  "cost_usd": 0.00867,
+  "instance_id": "sympy__sympy-19254",
+  "repo": "sympy/sympy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "sympy/polys/factortools.py"
+  ],
+  "files": [
+    "sympy/polys/factortools.py"
+  ],
+  "reasoning": "The reported univariate and multivariate bound implementations are defined directly in sympy/polys/factortools.py at dup_zz_mignotte_bound and dmp_zz_mignotte_bound. The multivariate bound is also consumed there by dmp_zz_wang when selecting the Hensel modulus, so replacing the bound formulas in this file addresses both requested cases. sympy/polys/compatibility.py only exposes wrappers for these functions and does not contain the bound logic.",
+  "stages": []
+}

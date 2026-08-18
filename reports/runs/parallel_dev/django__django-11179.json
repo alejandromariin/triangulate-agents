@@ -1,0 +1,41 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 5,
+  "bare_names": 0,
+  "seconds": 15.913761600037105,
+  "prompt_tokens": 36410,
+  "completion_tokens": 1468,
+  "cost_usd": 0.0090436,
+  "instance_id": "django__django-11179",
+  "repo": "django/django",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "django/db/models/deletion.py"
+  ],
+  "files": [
+    "django/db/models/deletion.py",
+    "django/db/models/base.py",
+    "django/db/models/query.py",
+    "django/contrib/admin/utils.py",
+    "django/contrib/contenttypes/management/commands/remove_stale_contenttypes.py"
+  ],
+  "reasoning": "django/db/models/deletion.py is the primary culprit with very high confidence: the single-object, no-dependency fast-delete path returns immediately after issuing SQL, bypassing the later cleanup that sets the deleted instance's primary key to None. django/db/models/base.py and django/db/models/query.py are supporting caller/integration points with low confidence as fault locations; they invoke Collector but do not implement the missing cleanup. django/contrib/admin/utils.py and django/contrib/contenttypes/management/commands/remove_stale_contenttypes.py only import Collector for administrative or command-specific behavior and are very unlikely to require changes.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "django/db/models/deletion.py \u2014 Most suspicious, high confidence. The reported line range matches exactly: the single-object, no-dependency fast-delete path returns immediately after issuing SQL at line 280, bypassing the later cleanup at lines 319\u2013326 that sets each deleted instance\u2019s primary key to `None`. I\u2019m unsure only whether the intended fix should be limited to assigning `instance.pk = None` in this branch or should reuse a broader cleanup mechanism.\n\ndjango/db/models/base.py \u2014 Strongly connected, medium confidence. `Model.delete()` constructs a `Collector`, collects the instance, and invokes `collector.delete()`, so this is the product-code entry point through which the reported behavior occurs. I\u2019m unsure whether this file needs any change, since the apparent defect is inside the collector\u2019s fast path.\n\ndjango/db/models/query.py \u2014 Related, lower confidence. `QuerySet.delete()` also creates a `Collector` and calls its `delete()` method, meaning the same fast-delete implementation affects queryset deletion, although the report specifically concerns deletion on model instances. I\u2019m unsure whether queryset deletion is expected to clear PKs on materialized objects, especially since queryset deletion generally operates without exposing those instances for post-delete state updates."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `django/db/models/deletion.py` \u2014 **Very high confidence.** The bug is directly present in the fast-delete optimization at lines 274\u2013280. This branch was introduced by recent commit `bc7dd8490b8` on 2018-09-27 (`Fixed #21171 -- Avoided starting a transaction when a single (or atomic queries) are executed.`). It returns immediately after issuing `DeleteQuery.delete_batch()`, bypassing the PK-clearing logic at lines 319\u2013326, which sets each deleted instance\u2019s primary key to `None`. The reported line 280 is therefore the exact faulty path: it should clear `instance`\u2019s PK before returning.\n\n2. `django/db/models/base.py` \u2014 **Low confidence / supporting context only.** Recent history includes the same `bc7dd8490b8` optimization-related commit, but the model save implementation does not perform deletion or control the fast-delete return path. No relevant recent change or defect was found here.\n\n3. `django/db/models/query.py` \u2014 **Low confidence / supporting context only.** Recent history also includes `bc7dd8490b8`, but this file does not contain the affected instance deletion cleanup. No relevant code change pointing to the reported behavior was found."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "django/db/models/deletion.py \u2014 **Primary culprit; very high confidence.** The single-object, no-dependency fast-delete path at lines 274\u2013280 returns immediately after issuing the SQL delete, bypassing the later instance cleanup at lines 319\u2013326 that sets each deleted object\u2019s primary key to `None`. The fix belongs in this file, specifically before the early return (or by otherwise ensuring the instance PK is cleared in the fast-delete branch).\n\ndjango/db/models/query.py \u2014 **Caller/integration point; low confidence as the fault location.** This module imports and uses `Collector`, so it can trigger the deletion workflow, but the PK-clearing behavior is implemented in `django/db/models/deletion.py`; no evidence indicates the caller is responsible for the bug.\n\ndjango/db/models/base.py \u2014 **Caller/integration point; low confidence as the fault location.** This module imports `Collector` and exposes model deletion behavior, but the reported missing PK reset occurs inside the collector\u2019s fast-delete optimization, not in this caller.\n\ndjango/contrib/admin/utils.py \u2014 **Unlikely; very low confidence.** It imports `Collector` for administrative deletion-related behavior, but does not own the instance deletion cleanup logic.\n\ndjango/contrib/contenttypes/management/commands/remove_stale_contenttypes.py \u2014 **Unlikely; very low confidence.** It imports `Collector`, but the bug affects the shared collector implementation and is independent of this command.\n\ndjango/db/models/__init__.py \u2014 **Unlikely; very low confidence.** It re-exports deletion components and does not implement deletion behavior."
+    }
+  ]
+}

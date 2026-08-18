@@ -1,0 +1,41 @@
+{
+  "topology": "hierarchical",
+  "split": "dev",
+  "failed": [],
+  "all": {
+    "accuracy@1": 0.8461538461538461,
+    "accuracy@3": 0.9230769230769231,
+    "accuracy@5": 0.9230769230769231,
+    "mrr": 0.8846153846153846,
+    "n": 26,
+    "bare_names": 0,
+    "seconds": 63.750219076914405,
+    "prompt_tokens": 126079,
+    "completion_tokens": 2190.3076923076924,
+    "cost_usd": 0.7239484
+  },
+  "hinted": {
+    "accuracy@1": 0.9090909090909091,
+    "accuracy@3": 1,
+    "accuracy@5": 1,
+    "mrr": 0.9545454545454546,
+    "n": 11,
+    "bare_names": 0,
+    "seconds": 44.050029490905054,
+    "prompt_tokens": 76681.36363636363,
+    "completion_tokens": 1366,
+    "cost_usd": 0.1867302
+  },
+  "unhinted": {
+    "accuracy@1": 0.8,
+    "accuracy@3": 0.8666666666666667,
+    "accuracy@5": 0.8666666666666667,
+    "mrr": 0.8333333333333334,
+    "n": 15,
+    "bare_names": 0,
+    "seconds": 78.19702477332127,
+    "prompt_tokens": 162303.93333333332,
+    "completion_tokens": 2794.8,
+    "cost_usd": 0.5372182
+  }
+}

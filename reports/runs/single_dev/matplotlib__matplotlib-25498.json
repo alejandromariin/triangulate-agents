@@ -1,0 +1,25 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 2,
+  "bare_names": 0,
+  "seconds": 20.363474100013264,
+  "prompt_tokens": 41408,
+  "completion_tokens": 410,
+  "cost_usd": 0.008773600000000001,
+  "instance_id": "matplotlib__matplotlib-25498",
+  "repo": "matplotlib/matplotlib",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "lib/matplotlib/colorbar.py"
+  ],
+  "files": [
+    "lib/matplotlib/colorbar.py",
+    "lib/matplotlib/colors.py"
+  ],
+  "reasoning": "The reported behavior is implemented in lib/matplotlib/colorbar.py: Colorbar.update_normal() compares and assigns the mappable norm, then redraws through _process_values(), where norm.inverse() is used and the ZeroDivisionError can arise. The inverse normalization logic, including LogNorm behavior and handling of unset or zero limits, is implemented in lib/matplotlib/colors.py. These are the product-code files directly involved in updating the colorbar after replacing its norm.",
+  "stages": []
+}

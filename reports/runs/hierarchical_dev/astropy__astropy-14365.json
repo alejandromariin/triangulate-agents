@@ -1,0 +1,30 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 24.779544799996074,
+  "prompt_tokens": 31158,
+  "completion_tokens": 876,
+  "cost_usd": 0.0072828,
+  "instance_id": "astropy__astropy-14365",
+  "repo": "astropy/astropy",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "reasoning": "The QDP reader\u2019s command classification is implemented in `astropy/io/ascii/qdp.py`. Its `_line_type()` function uses an uppercase-sensitive regular expression for `READ SERR` and `READ TERR`, then raises the reported `Unrecognized QDP line` error before later parsing can normalize command tokens. The same file contains the downstream QDP table-reading logic.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "asked": "Search the repository text for the QDP ascii reader implementation, especially command parsing, uppercase assumptions, and the exact `Unrecognized QDP line` error. Report the complete repository-relative product file paths and relevant symbols/locations. Do not suggest tests.",
+      "output": "Product source file:\n\n- `astropy/io/ascii/qdp.py`\n  - `_line_type()` \u2014 lines 20\u201386\n    - Command recognition is defined by the uppercase-sensitive regular expression at line 63:\n      ```python\n      _command_re = r\"READ [TS]ERR(\\s+[0-9]+)+\"\n      ```\n    - The full line-matching expression is compiled at lines 68\u201371.\n    - A nonmatching command raises the reported error at line 78:\n      ```python\n      raise ValueError(f\"Unrecognized QDP line: {line}\")\n      ```\n    - The docstring examples at lines 35\u201336 document uppercase `READ SERR`.\n  - `_get_type_from_list_of_lines()` \u2014 lines 88\u2013132\n    - Calls `_line_type()` for every input line at line 122, so lowercase commands fail during initial classification.\n  - `_get_tables_from_qdp_file()` \u2014 lines 237\u2013342\n    - Processes lines classified as `\"command\"` at lines 277\u2013290.\n    - Parses command tokens when data begins at lines 294\u2013300:\n      ```python\n      err_specs[command[1].lower()] = [int(c) for c in command[2:]]\n      ```\n    - The command keyword is normalized to lowercase here, but this occurs only after `_line_type()` has already required uppercase `READ`, `SERR`, or `TERR`.\n  - `_interpret_err_lines()` \u2014 lines 149\u2013234\n    - Consumes normalized `serr` and `terr` command specifications at lines 201\u2013202.\n  - `_read_table_qdp()` \u2014 lines 385\u2013422\n    - Public reader helper; invokes `_get_tables_from_qdp_file()` at lines 418\u2013420.\n  - `QDP` \u2014 lines 523 onward\n    - Product reader class registered for the QDP format.\n  - `_write_table_qdp()` \u2014 lines 425\u2013491\n    - Writes uppercase commands (`READ SERR` / `READ TERR`) at lines 459\u2013463; this is writer behavior rather than the lowercase-reading failure."
+    }
+  ]
+}

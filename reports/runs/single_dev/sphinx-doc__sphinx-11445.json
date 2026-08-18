@@ -1,0 +1,27 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 4,
+  "bare_names": 0,
+  "seconds": 21.842876599985175,
+  "prompt_tokens": 33990,
+  "completion_tokens": 506,
+  "cost_usd": 0.0074052,
+  "instance_id": "sphinx-doc__sphinx-11445",
+  "repo": "sphinx-doc/sphinx",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "sphinx/util/rst.py"
+  ],
+  "files": [
+    "sphinx/util/rst.py",
+    "sphinx/parsers.py",
+    "sphinx/environment/collectors/title.py",
+    "sphinx/environment/collectors/toctree.py"
+  ],
+  "reasoning": "The bug originates in rst_prolog preprocessing: sphinx/parsers.py calls prepend_prolog(), whose implementation in sphinx/util/rst.py inserts the prolog before the document\u2019s first heading. This changes how a domain-role heading such as :mod:`mypackage2` is interpreted by docutils. The resulting section tree is then consumed by the title and toctree collectors in sphinx/environment/collectors/title.py and sphinx/environment/collectors/toctree.py, which are the product-code paths responsible for extracting and rendering document headings.",
+  "stages": []
+}

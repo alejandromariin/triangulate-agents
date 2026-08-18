@@ -1,0 +1,37 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 1,
+  "bare_names": 0,
+  "seconds": 16.25700489996234,
+  "prompt_tokens": 89871,
+  "completion_tokens": 1777,
+  "cost_usd": 0.020106600000000002,
+  "instance_id": "mwaskom__seaborn-3407",
+  "repo": "mwaskom/seaborn",
+  "statement_names_gold_file": true,
+  "gold_files": [
+    "seaborn/axisgrid.py"
+  ],
+  "files": [
+    "seaborn/axisgrid.py"
+  ],
+  "reasoning": "This is the direct implementation site for pairplot and PairGrid. The MultiIndex column-variable mismatch is created or mishandled in PairGrid initialization and then triggers the failing self.data[var] lookup in map_diag, matching the reported KeyError. The other reported files are only caller or dependency context and are not involved before the lookup fails.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "1. `seaborn/axisgrid.py` \u2014 **Most suspicious; high confidence.**  \n   This file contains both `pairplot` and its underlying `PairGrid` implementation. `PairGrid.__init__` derives the default variables through `_find_numeric_cols(data)`, while `map_diag` later retrieves each variable with `self.data[var]` at line 1490. With a `MultiIndex`, the inferred variable names appear to be individual level values such as `\"1\"` rather than the complete tuple column labels such as `(\"A\", \"1\")`, directly matching the reported `KeyError: \"['1'] not in index\"`. I am unsure whether the defect is specifically in `_find_numeric_cols` or in the handling of column labels between grid construction and plotting; the relevant implementation is all in this file."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `seaborn/axisgrid.py` \u2014 **Very high confidence**\n\n   The reported failure occurs directly in this product file. `pairplot` constructs a `PairGrid` and then calls `grid.map_diag(histplot)`. In `PairGrid.map_diag`, the diagonal variables are retrieved with:\n\n   ```python\n   vector = self.data[var]\n   ```\n\n   For the reported `MultiIndex` columns, `PairGrid` derives variable names that do not preserve the full tuple labels. The resulting lookup attempts to access a scalar level such as `\"1\"` in a `MultiIndex`, producing the reported `KeyError`.\n\n   The relevant lines are:\n\n   ```text\n   seaborn/axisgrid.py:1490\n   seaborn/axisgrid.py:2144\n   ```\n\n   History shows that this is the only directly implicated product file, but the suspicious lookup itself is old: blame attributes `map_diag` and the `self.data[var]` access to commit `d40c0b014` from 2020-08-30. The surrounding `pairplot` logic is also largely old, with the current diagonal dispatch dating to 2020. Recent commits touching `axisgrid.py` include matplotlib-warning handling and documentation changes, not MultiIndex support, so there is no recent commit clearly introducing this regression. Nevertheless, the code path demonstrably contains the bug and is the strongest candidate.\n\n2. `seaborn/` \u2014 **Low confidence as a separate candidate; useful only as directory context**\n\n   The directory history contains recent changes, but the newest commits concern nullable dtypes, categorical axes, and plotting internals. None of the subjects or affected areas point specifically to `pairplot`, `PairGrid`, or MultiIndex column handling. The directory history therefore does not identify a nearby alternative product file. No additional file is supported strongly enough to add.\n\nNo candidate was dropped: `seaborn/axisgrid.py` is the direct implementation site, and `seaborn/` was retained only because its history was requested for nearby-file context."
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "1. `seaborn/axisgrid.py` \u2014 **Very high confidence (direct fault location)**  \n   `pairplot` delegates to `PairGrid`, whose constructor obtains MultiIndex column labels from `_find_numeric_cols` and stores them as variables. The failure is then exposed in `map_diag` at `self.data[var]`: for a MultiIndex DataFrame, pandas interprets a tuple variable such as `(\"A\", \"1\")` as multi-column indexing rather than a single column key, producing the reported `KeyError`. The relevant product-code paths are `PairGrid.__init__`, `_find_numeric_cols`, `map_diag`, and `_plot_bivariate`; this file owns the variable-selection and data-access logic used by `pairplot`.\n\n2. `seaborn/_oldcore.py` \u2014 **Low confidence (dependency, not the origin)**  \n   This module is imported by `seaborn/axisgrid.py`, but the reported failure occurs before plotting internals meaningfully process the data. It may participate in type inference through imported utilities, but it does not appear to be the source of the MultiIndex column-key mismatch.\n\n3. `seaborn/distributions.py` \u2014 **Low confidence (caller dependency where the failure surfaces)**  \n   `pairplot` imports `histplot` from this module and passes it to `PairGrid.map_diag`. The histogram function is therefore present in the traceback call chain, but `map_diag` fails while retrieving `self.data[var]`, before `histplot` performs the plotting work. This is the observing/called module, not the likely fault origin."
+    }
+  ]
+}

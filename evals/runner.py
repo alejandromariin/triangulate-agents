@@ -28,8 +28,14 @@ MAX_USD = 1.00
 
 # An instance costs tens of thousands of tokens in a few seconds, which is fast
 # enough to hit a per-minute account limit. Held below it deliberately, since
-# waiting between instances is cheaper than losing one to a refused call.
-TOKENS_PER_MINUTE = 150_000
+# waiting between instances is cheaper than losing one to a refused call. The
+# margin is wide because a topology running its agents concurrently spends its
+# tokens in a burst, and the limit is enforced on the burst, not on the average.
+TOKENS_PER_MINUTE = 100_000
+
+# A refused call is worth one patient retry: the limit it hit is measured over a
+# minute, so waiting one out is usually all it takes.
+RETRY_WAIT_SECONDS = 90
 
 
 def select(split: str, limit: int | None) -> list[dict]:
@@ -72,6 +78,15 @@ def pace(record: dict) -> None:
         time.sleep(delay)
 
 
+def attempt(topology: str, instance: dict) -> dict:
+    try:
+        return run_instance(topology, instance)
+    except Exception as error:
+        print(f"    retrying in {RETRY_WAIT_SECONDS}s after {type(error).__name__}", flush=True)
+        time.sleep(RETRY_WAIT_SECONDS)
+        return run_instance(topology, instance)
+
+
 def write(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -106,7 +121,7 @@ def main() -> None:
 
         print(head, flush=True)
         try:
-            record = run_instance(args.topology, instance)
+            record = attempt(args.topology, instance)
         # A refused or dropped call is expected over dozens of API round trips,
         # and it must not discard the instances already answered. Nothing is
         # written, so a later run retries this instance.

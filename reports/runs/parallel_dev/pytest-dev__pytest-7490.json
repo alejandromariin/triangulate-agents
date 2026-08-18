@@ -1,0 +1,39 @@
+{
+  "hit@1": 1,
+  "hit@3": 1,
+  "hit@5": 1,
+  "rr": 1.0,
+  "rank": 1,
+  "n_candidates": 3,
+  "bare_names": 0,
+  "seconds": 43.798638199979905,
+  "prompt_tokens": 165636,
+  "completion_tokens": 2556,
+  "cost_usd": 0.0361944,
+  "instance_id": "pytest-dev__pytest-7490",
+  "repo": "pytest-dev/pytest",
+  "statement_names_gold_file": false,
+  "gold_files": [
+    "src/_pytest/skipping.py"
+  ],
+  "files": [
+    "src/_pytest/skipping.py",
+    "src/_pytest/nodes.py",
+    "src/_pytest/runner.py"
+  ],
+  "reasoning": "`src/_pytest/skipping.py` is the strongest match: the xfail refactor introduced setup-time caching and call-phase evaluation that can miss a marker added during the test, causing the failure to be reported normally. `src/_pytest/nodes.py` implements the exact `request.node.add_marker()` mutation path and is the relevant adjacent API, although the evidence indicates it is functioning correctly. `src/_pytest/runner.py` supplies the setup/call/report lifecycle in which the regression appears, but contains no xfail-specific decision logic.",
+  "stages": [
+    {
+      "role": "Lexical investigator",
+      "output": "Candidate files, most suspicious first:\n\n1. `src/_pytest/skipping.py` \u2014 **Highest confidence.** This is the product code that evaluates xfail markers and converts a failing call into a skipped/xfailed report. The key behavior is split between `pytest_runtest_setup` (caching `xfailed_key`) and `pytest_runtest_call` (only evaluating the marker if the cached value is `None`), followed by `pytest_runtest_makereport`. Dynamically adding the marker during the test should be picked up by the call hook, but the cached state or hook timing is the main suspected regression. I am unsure whether the fault is specifically the cache lifecycle or the ordering of hook implementations.\n\n2. `src/_pytest/nodes.py` \u2014 **High confidence.** `Node.add_marker()` is the exact API used by the report. It appends the marker to `own_markers` and updates `keywords`, which is what `item.iter_markers(name=\"xfail\")` later reads. I am unsure whether this implementation changed in the problematic release or whether it correctly mutates the node but the skipping logic fails to observe the mutation.\n\n3. `src/_pytest/fixtures.py` \u2014 **Medium confidence.** `FixtureRequest.applymarker()` delegates directly to `self.node.add_marker(marker)`, confirming the supported dynamic-marker path associated with a request object. The report uses `request.node.add_marker()` rather than `request.applymarker()`, so this is relevant API plumbing but less likely to contain the regression. I am unsure whether request-specific marker application has separate semantics elsewhere.\n\n4. `src/_pytest/runner.py` \u2014 **Medium-low confidence.** `call_and_report()` invokes `pytest_runtest_makereport` after the test call, and the default report implementation creates the report consumed by the xfail plugin. This establishes the lifecycle in which dynamically added markers must be recognized. I am unsure whether report-generation ordering is responsible; the xfail-specific handling itself is in `src/_pytest/skipping.py`."
+    },
+    {
+      "role": "History investigator",
+      "output": "1. `src/_pytest/skipping.py` \u2014 **Very high confidence**\n\n   This is the clear primary suspect. Its recent history shows a concentrated refactor of xfail behavior immediately before the report:\n\n   - `a1f841d5d` (2020-06-19): \u201cskipping: use pytest_runtest_call instead of pytest_pyfunc_call\u201d\n   - `6072c9950` (2020-06-19): moved `MarkEvaluator` into this module\n   - `3e6fe92b7` (2020-06-19): \u201crefactor skipif/xfail mark evaluation\u201d\n   - `c9737ae91` (2020-06-20): \u201csimplify xfail handling during call phase\u201d\n\n   The current implementation evaluates xfail marks during setup at lines 241\u2013243 and caches the result in `xfailed_key`. During the call phase, it only reevaluates if the cached value is `None`:\n\n   ```python\n   xfailed = item._store.get(xfailed_key, None)\n   if xfailed is None:\n       item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)\n   ```\n\n   Dynamically adding an xfail marker during the test therefore happens too late: setup has already cached `None`, and the call hook evaluates before the test body adds the marker. The later report hook sees no cached xfail and consequently treats the assertion failure as a normal failure. The history and the changed control flow directly match the regression. **Very high confidence.**\n\n2. `src/_pytest/mark/structures.py` \u2014 **Low confidence**\n\n   This is adjacent product code responsible for marker representation and application, so it is relevant to `request.node.add_marker()`. However, its recent history is primarily typing and cleanup work:\n\n   - `7b65b2337` (2020-07-11): cleanup merge\n   - `c1ca42b5c` (2020-07-10): pylint cleanup for builtin marks\n   - `b3fb5a2d4` (2020-06-16): type annotations for builtin marks\n   - `848ab0066` (2020-05-01): type annotations for `@pytest.mark.foo`\n\n   The blame shows no recent change to the core marker storage/application behavior implicated by the report. The file defines `Mark` and `MarkDecorator`, but the failure is caused by when `skipping.py` evaluates and caches markers, not by the dynamically added marker\u2019s construction. Retain as a nearby dependency, but substantially deprioritize. **Low confidence.**\n\n3. `src/_pytest/runner.py` \u2014 **Very low confidence**\n\n   This file is involved in the runtest lifecycle, but its recent changes do not concern xfail or marker evaluation:\n\n   - `a2f021b6f` (2020-07-10): typing-related cleanup\n   - `fb2640b82` (2020-06-28): internal exception handling cleanup\n   - `97d2c711e` (2020-06-26): reduced hook calls\n   - `bb878a2b1` (2020-06-14): setup/teardown behavior\n\n   The current xfail-specific lifecycle hooks are implemented in `src/_pytest/skipping.py`, and the regression is visible there. No history evidence points to `runner.py` as the source. **Very low confidence.**"
+    },
+    {
+      "role": "Dependency investigator",
+      "output": "1. **src/_pytest/skipping.py** \u2014 **Very high confidence**  \n   This is the fault\u2019s origin. The xfail evaluation and report conversion are implemented here. In particular, `pytest_runtest_setup` caches the result of `evaluate_xfail_marks(item)` in `xfailed_key`, while `pytest_runtest_call` only reevaluates when that cached value is `None`. A marker dynamically added during test setup through `request.node.add_marker(...)` is therefore not reflected if the initial setup evaluation already cached `None`. The failure is subsequently handled as an ordinary failure in `pytest_runtest_makereport`, rather than converted to an xfailed result.\n\n2. **src/_pytest/runner.py** \u2014 **Low confidence / caller only**  \n   This file orchestrates the setup, call, and teardown phases and is involved in where the behavior becomes visible, but it does not contain the xfail decision logic. Its `runtestprotocol`/hook flow correctly invokes setup before the test call; the faulty stale xfail state originates in `src/_pytest/skipping.py`, not here."
+    }
+  ]
+}
